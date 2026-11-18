@@ -535,6 +535,11 @@
   }
 
   /* Shared common element rules */
+  .r-contact__icon {
+    vertical-align: -0.15em;
+    margin-right: 1mm;
+  }
+
   .r-section__head {
     display: flex;
     align-items: center;

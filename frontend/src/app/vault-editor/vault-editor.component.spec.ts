@@ -51,4 +51,19 @@ describe('VaultEditorComponent', () => {
     expect(tabSpy).toHaveBeenCalledWith('triage');
     expect(collapseSpy).toHaveBeenCalledWith(false);
   });
+
+  it('uses local photo wording instead of upload wording and includes a LinkedIn input', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Add photo');
+    expect(el.textContent).not.toContain('Upload photo');
+
+    const linkedinInput = el.querySelector('input[placeholder="linkedin.com/in/username"]') as HTMLInputElement;
+    expect(linkedinInput).toBeTruthy();
+  });
 });

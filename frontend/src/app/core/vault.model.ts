@@ -35,6 +35,7 @@ export interface Contact {
   email: string;
   phone: string;
   location: string;
+  linkedin: string;
   links: string[];
   photoDataUrl: string;
 }
@@ -56,7 +57,7 @@ export const THEMES: { value: ThemeName; label: string }[] = [
 
 export function emptyVault(): MasterVault {
   return {
-    contact: { fullName: '', email: '', phone: '', location: '', links: [], photoDataUrl: '' },
+    contact: { fullName: '', email: '', phone: '', location: '', linkedin: '', links: [], photoDataUrl: '' },
     summary: '',
     experience: [],
     education: [],
@@ -85,6 +86,7 @@ export function normalizeVault(raw: unknown): MasterVault {
     email: str(c['email']),
     phone: str(c['phone']),
     location: str(c['location']),
+    linkedin: str(c['linkedin']),
     links: strArr(c['links']),
     photoDataUrl: str(c['photoDataUrl']),
   };
