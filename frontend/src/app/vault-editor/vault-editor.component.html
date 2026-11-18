@@ -51,6 +51,7 @@
       <label>Email <input type="email" [(ngModel)]="v.contact.email" (ngModelChange)="vs.touch()" /></label>
       <label>Phone <input type="tel" [(ngModel)]="v.contact.phone" (ngModelChange)="vs.touch()" /></label>
       <label>Location <input type="text" [(ngModel)]="v.contact.location" (ngModelChange)="vs.touch()" /></label>
+      <label>LinkedIn <input type="text" placeholder="linkedin.com/in/username" [(ngModel)]="v.contact.linkedin" (ngModelChange)="vs.touch()" /></label>
       <label>Links (comma separated)
         <input type="text" [ngModel]="v.contact.links.join(', ')" (change)="setLinks($any($event.target).value)" />
       </label>
@@ -60,7 +61,7 @@
           <button app-button type="button" variant="ghost" size="sm" (click)="removePhoto()">Remove photo</button>
         }
         <label class="btn small file-btn">
-          {{ v.contact.photoDataUrl ? 'Change photo' : 'Upload photo' }}
+          {{ v.contact.photoDataUrl ? 'Change photo' : 'Add photo' }}
           <input type="file" accept="image/*" hidden (change)="onPhoto($event)" />
         </label>
       </div>

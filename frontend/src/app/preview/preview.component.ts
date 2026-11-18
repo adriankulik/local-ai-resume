@@ -45,14 +45,25 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     return [c.email, c.phone, c.location].map((s) => s?.trim()).filter(Boolean);
   });
 
+  readonly linkedinLink = computed(() => {
+    const raw = (this.vs.vault().contact.linkedin || '').trim();
+    if (!raw) return null;
+    return {
+      url: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+      display: raw.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''),
+    };
+  });
+
   readonly contactLinks = computed(() => {
+    const liDisplay = this.linkedinLink()?.display.toLowerCase();
     return (this.vs.vault().contact.links || [])
       .map((l) => l.trim())
       .filter(Boolean)
       .map((l) => ({
         url: /^https?:\/\//i.test(l) ? l : `https://${l}`,
-        display: l.replace(/^https?:\/\//i, '').replace(/\/$/, ''),
-      }));
+        display: l.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''),
+      }))
+      .filter((l) => !liDisplay || l.display.toLowerCase() !== liDisplay);
   });
 
   readonly rodoText = computed(() => {
