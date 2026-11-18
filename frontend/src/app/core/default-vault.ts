@@ -6,7 +6,8 @@ const DEFAULT_VAULT: MasterVault = {
     email: 'jan@example.com',
     phone: '+48 123 456 789',
     location: 'Wrocław, Poland',
-    links: ['linkedin.com/in/jankowalski', 'github.com/jankowalski'],
+    linkedin: 'linkedin.com/in/jankowalski',
+    links: ['github.com/jankowalski'],
     photoDataUrl: '',
   },
   summary:

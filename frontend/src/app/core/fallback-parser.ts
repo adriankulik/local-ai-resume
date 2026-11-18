@@ -20,6 +20,7 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
 
   const linkMatches = clean.match(/(?:https?:\/\/|www\.|linkedin\.com\/in\/|github\.com\/)[^\s,]+/gi) ?? [];
   const links = [...new Set(linkMatches.map((l) => l.replace(/^[,\s]+|[,\s]+$/g, '')))];
+  const linkedin = links.find((l) => /linkedin\.com\//i.test(l)) ?? base.contact.linkedin;
 
   // Guess full name from first non-contact line
   let fullName = '';
@@ -170,6 +171,7 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
       email,
       phone,
       location,
+      linkedin,
       links: links.length ? links : base.contact.links,
       photoDataUrl: base.contact.photoDataUrl,
     },

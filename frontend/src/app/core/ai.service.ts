@@ -60,7 +60,7 @@ const vaultSchema = {
     contact: {
       type: 'object',
       properties: {
-        fullName: str, email: str, phone: str, location: str,
+        fullName: str, email: str, phone: str, location: str, linkedin: str,
         links: { type: 'array', items: str },
       },
       required: ['fullName', 'email', 'phone', 'location', 'links'],
