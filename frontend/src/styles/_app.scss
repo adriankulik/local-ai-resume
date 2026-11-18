@@ -342,7 +342,34 @@ fieldset.role {
 
 // ---- Preview toolbar: structured settings list ----
 .toolbar { display: flex; flex-direction: column; gap: v.$sp-3; }
-.toolbar__head { display: flex; align-items: center; justify-content: space-between; gap: v.$sp-3; }
+.toolbar__head { display: flex; align-items: center; justify-content: space-between; gap: v.$sp-3; flex-wrap: wrap; }
+.toolbar__actions { display: flex; align-items: center; gap: v.$sp-2; flex-wrap: wrap; }
+
+.vault-sync-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: v.$sp-3;
+  flex-wrap: wrap;
+  padding: v.$sp-2 v.$sp-3;
+  border-radius: v.$radius-md;
+  background: var(--c-chip-bg);
+  border: 1px solid var(--c-accent);
+  font-size: v.$fs-xs;
+  color: var(--c-ink-primary);
+
+  &__text {
+    flex: 1 1 220px;
+    line-height: v.$lh-normal;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: v.$sp-2;
+    flex-shrink: 0;
+  }
+}
 
 .settings { display: flex; flex-direction: column; }
 

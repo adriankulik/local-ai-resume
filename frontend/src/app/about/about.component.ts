@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
 import { LucideCpu, LucideExternalLink, LucideLayers, LucideShieldCheck } from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
+import { CollapsibleComponent } from '../collapsible/collapsible.component';
 
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [ButtonComponent],
+  imports: [ButtonComponent, CollapsibleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './about.component.html',
   styleUrl: './about.component.scss',
@@ -17,4 +18,14 @@ export class AboutComponent {
   readonly shieldIcon = LucideShieldCheck.icon;
   readonly cpuIcon = LucideCpu.icon;
   readonly layersIcon = LucideLayers.icon;
+
+  readonly licenses = [
+    { name: 'Angular', license: 'MIT', url: 'https://angular.dev' },
+    { name: 'Lucide Icons', license: 'ISC', url: 'https://lucide.dev' },
+    { name: 'RxJS', license: 'Apache-2.0', url: 'https://rxjs.dev' },
+    { name: 'Three.js', license: 'MIT', url: 'https://threejs.org' },
+    { name: 'Zone.js', license: 'MIT', url: 'https://github.com/angular/angular' },
+    { name: 'tslib', license: '0BSD', url: 'https://www.typescriptlang.org' },
+    { name: 'Fontsource (Inter, JetBrains Mono, Lora, Poppins)', license: 'OFL-1.1', url: 'https://fontsource.org' },
+  ];
 }

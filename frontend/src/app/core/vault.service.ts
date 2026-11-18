@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
-import { MasterVault, normalizeVault, nextId, Experience } from './vault.model';
+import { Bullet, Education, Experience, MasterVault, normalizeVault, nextId } from './vault.model';
 import { defaultVault } from './default-vault';
 
 const VAULT_KEY = 'master-vault';
@@ -30,6 +30,13 @@ export class VaultService {
   readonly tailoredSummary = signal<string | null>(null);
   /** Skills ordered/selected for the current job description; overrides the vault skills in the preview. */
   readonly tailoredSkills = signal<string[] | null>(null);
+
+  /** Resume-only additions & visibility overrides (keeps Master Vault untouched unless promoted). */
+  readonly resumeOnlyBullets = signal<Record<string, Bullet[]>>({});
+  readonly resumeOnlyExperience = signal<Experience[]>([]);
+  readonly resumeOnlyEducation = signal<Education[]>([]);
+  readonly hiddenEducationIds = signal<Set<string>>(new Set());
+  readonly hiddenSummary = signal(false);
 
   readonly settings = computed(() => this.vault().settings);
   readonly ready: Promise<void>;
@@ -193,12 +200,23 @@ export class VaultService {
     this.update((v) => (v.education = v.education.filter((e) => e.id !== id)));
   }
 
-  /** Experience filtered to selected bullets; roles with none are dropped. */
+  /** Experience filtered to selected bullets plus any resume-only additions. */
   selectedExperience = computed<Experience[]>(() => {
     const sel = this.selectedBulletIds();
-    return this.vault()
-      .experience.map((e) => ({ ...e, bullets: e.bullets.filter((b) => sel.has(b.id)) }))
+    const extraBullets = this.resumeOnlyBullets();
+    const vaultExps = this.vault()
+      .experience.map((e) => ({
+        ...e,
+        bullets: [...e.bullets.filter((b) => sel.has(b.id)), ...(extraBullets[e.id] ?? [])],
+      }))
       .filter((e) => e.bullets.length > 0);
+    return [...vaultExps, ...this.resumeOnlyExperience()];
+  });
+
+  /** Education entries from the vault (excluding hidden ones) plus resume-only additions. */
+  visibleEducation = computed<Education[]>(() => {
+    const hidden = this.hiddenEducationIds();
+    return [...this.vault().education.filter((e) => !hidden.has(e.id)), ...this.resumeOnlyEducation()];
   });
 
   // --- Backup ---
@@ -224,5 +242,10 @@ export class VaultService {
     this.selectedBulletIds.set(new Set());
     this.tailoredSummary.set(null);
     this.tailoredSkills.set(null);
+    this.resumeOnlyBullets.set({});
+    this.resumeOnlyExperience.set([]);
+    this.resumeOnlyEducation.set([]);
+    this.hiddenEducationIds.set(new Set());
+    this.hiddenSummary.set(false);
   }
 }

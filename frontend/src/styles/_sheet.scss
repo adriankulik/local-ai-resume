@@ -535,6 +535,145 @@
   }
 
   /* Shared common element rules */
+  .r-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2mm;
+  }
+
+  .r-edit-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5mm;
+  }
+
+  .r-edit-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 8.5pt;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.6mm 2mm;
+    border-radius: 3px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    line-height: 1.3;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+
+    &--primary {
+      background: #1e3a8a;
+      border-color: #1e3a8a;
+      color: #fff;
+
+      &:hover {
+        background: #1e40af;
+      }
+    }
+
+    &--danger {
+      color: #b91c1c;
+      border-color: #fecaca;
+      background: #fef2f2;
+
+      &:hover {
+        background: #fee2e2;
+      }
+    }
+  }
+
+  .r-bullet-item {
+    position: relative;
+    padding-right: 6mm;
+
+    > .r-edit-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      padding: 0 1.4mm;
+    }
+  }
+
+  .r-inline-add,
+  .r-inline-form {
+    margin-top: 1.5mm;
+    margin-bottom: 1.5mm;
+    font-family: 'Inter', sans-serif;
+
+    input,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 9pt;
+      padding: 1mm 1.8mm;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      background: #fff;
+      color: #0f172a;
+    }
+  }
+
+  .r-inline-add {
+    display: flex;
+    gap: 1.5mm;
+    align-items: center;
+
+    input {
+      flex: 1;
+    }
+  }
+
+  .r-inline-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    padding: 2mm;
+    border: 1px dashed #94a3b8;
+    border-radius: 4px;
+    background: #f8fafc;
+
+    &__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5mm;
+    }
+
+    &__actions {
+      display: flex;
+      gap: 1.5mm;
+      justify-content: flex-end;
+    }
+  }
+
+  .r-skills-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5mm;
+  }
+
+  .r-skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 1mm;
+    padding: 0.5mm 1.5mm;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #f8fafc;
+    font-size: 9pt;
+
+    > .r-edit-btn {
+      border: none;
+      background: transparent;
+      padding: 0 0.8mm;
+    }
+  }
+
   .r-photo {
     width: 26mm;
     height: 26mm;

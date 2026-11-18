@@ -53,4 +53,19 @@ describe('AboutComponent', () => {
 
     expect(closedEmitted).toBeTrue();
   });
+
+  it('renders a collapsible open-source licenses section with attributions', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Open-source licenses');
+
+    const toggle = el.querySelector('app-collapsible button') as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Angular');
+    expect(el.textContent).toContain('MIT');
+    expect(el.textContent).toContain('Lucide Icons');
+    expect(el.textContent).toContain('OFL-1.1');
+  });
 });
