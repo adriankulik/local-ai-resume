@@ -83,6 +83,25 @@
     </div>
   </section>
 
+  <app-collapsible title="Open-source licenses" [open]="false">
+    <p class="about-licenses__intro">
+      Local AI Resume is built with the following open-source software and fonts:
+    </p>
+    <ul class="about-licenses__list">
+      @for (lib of licenses; track lib.name) {
+        <li class="about-licenses__item">
+          <a
+            class="about-licenses__name"
+            [href]="lib.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >{{ lib.name }}</a>
+          <span class="about-licenses__badge">{{ lib.license }}</span>
+        </li>
+      }
+    </ul>
+  </app-collapsible>
+
   <footer class="about-footer">
     <button app-button type="button" variant="primary" size="md" (click)="closed.emit()">
       Close

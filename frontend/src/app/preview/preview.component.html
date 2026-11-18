@@ -3,8 +3,37 @@
   <div class="toolbar no-print">
     <div class="toolbar__head">
       <h2 class="panel-title">Live A4 Preview</h2>
-      <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
+      <div class="toolbar__actions">
+        <button
+          app-button
+          type="button"
+          [variant]="editMode() ? 'primary' : 'secondary'"
+          size="md"
+          [iconLeading]="editIcon"
+          [attr.aria-pressed]="editMode()"
+          (click)="toggleEditMode()"
+        >
+          {{ editMode() ? 'Done editing' : 'Edit resume' }}
+        </button>
+        <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
+      </div>
     </div>
+
+    @if (pendingVaultPrompt(); as p) {
+      <div class="vault-sync-banner" role="status">
+        <span class="vault-sync-banner__text">
+          You added a {{ p.label }} to this resume. Also update your Master Career Vault (source of truth)?
+        </span>
+        <div class="vault-sync-banner__actions">
+          <button app-button type="button" variant="primary" size="sm" [iconLeading]="checkIcon" (click)="confirmVaultPrompt()">
+            Update Vault
+          </button>
+          <button app-button type="button" variant="ghost" size="sm" [iconLeading]="closeIcon" (click)="dismissVaultPrompt()">
+            This resume only
+          </button>
+        </div>
+      </div>
+    }
 
     @if (overflow()) {
       <p class="msg error" role="alert">
@@ -96,16 +125,60 @@
           </div>
         </header>
 
-        @if (summary()) {
+        @if (summary() || editMode()) {
           <section class="r-section">
-            <h2>Summary</h2>
-            <p>{{ summary() }}</p>
+            <h2 class="r-section__head">
+              <span>Summary</span>
+              @if (editMode() && !editingSummary()) {
+                <span class="r-edit-actions no-print">
+                  <button type="button" class="r-edit-btn" (click)="startEditSummary()">
+                    {{ summary() ? 'Edit' : '+ Add summary' }}
+                  </button>
+                  @if (summary()) {
+                    <button type="button" class="r-edit-btn r-edit-btn--danger" aria-label="Remove summary" (click)="removeResumeSummary()">
+                      Delete
+                    </button>
+                  }
+                </span>
+              }
+            </h2>
+            @if (editMode() && editingSummary()) {
+              <div class="r-inline-form no-print">
+                <textarea rows="3" aria-label="Resume summary" [ngModel]="summaryDraft()" (ngModelChange)="summaryDraft.set($event)"></textarea>
+                <div class="r-inline-form__actions">
+                  <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="saveResumeSummary()">Save</button>
+                  <button type="button" class="r-edit-btn" (click)="editingSummary.set(false)">Cancel</button>
+                </div>
+              </div>
+            } @else if (summary()) {
+              <p>{{ summary() }}</p>
+            }
           </section>
         }
 
-        @if (vs.selectedExperience().length) {
+        @if (vs.selectedExperience().length || editMode()) {
           <section class="r-section">
-            <h2>Experience</h2>
+            <h2 class="r-section__head">
+              <span>Experience</span>
+              @if (editMode() && !addingRole()) {
+                <button type="button" class="r-edit-btn no-print" (click)="addingRole.set(true)">+ Add role</button>
+              }
+            </h2>
+            @if (editMode() && addingRole()) {
+              <div class="r-inline-form no-print">
+                <div class="r-inline-form__grid">
+                  <input type="text" placeholder="Role title" [ngModel]="newRole().role" (ngModelChange)="updateNewRoleField('role', $event)" />
+                  <input type="text" placeholder="Company" [ngModel]="newRole().company" (ngModelChange)="updateNewRoleField('company', $event)" />
+                  <input type="text" placeholder="Start (e.g. 2022-03)" [ngModel]="newRole().startDate" (ngModelChange)="updateNewRoleField('startDate', $event)" />
+                  <input type="text" placeholder="End (e.g. Present)" [ngModel]="newRole().endDate" (ngModelChange)="updateNewRoleField('endDate', $event)" />
+                </div>
+                <input type="text" placeholder="Initial achievement bullet (optional)" [ngModel]="newRole().bullet" (ngModelChange)="updateNewRoleField('bullet', $event)" />
+                <div class="r-inline-form__actions">
+                  <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeExperience()">Add role</button>
+                  <button type="button" class="r-edit-btn" (click)="addingRole.set(false)">Cancel</button>
+                </div>
+              </div>
+            }
             @for (e of vs.selectedExperience(); track e.id) {
               <div class="r-role">
                 <h3>
@@ -120,22 +193,66 @@
                       <span class="r-company">{{ e.company }}</span>
                     }
                   </span>
-                  <span class="r-dates">{{ fmt(e.startDate) }}{{ e.startDate && e.endDate ? ' – ' : '' }}{{ fmt(e.endDate) }}</span>
+                  <span class="r-dates">
+                    {{ fmt(e.startDate) }}{{ e.startDate && e.endDate ? ' – ' : '' }}{{ fmt(e.endDate) }}
+                    @if (editMode()) {
+                      <button type="button" class="r-edit-btn r-edit-btn--danger no-print" (click)="removeResumeExperience(e)">
+                        Delete role
+                      </button>
+                    }
+                  </span>
                 </h3>
                 <ul>
                   @for (b of e.bullets; track b.id) {
-                    <li>{{ b.text }}</li>
+                    <li class="r-bullet-item">
+                      <span>{{ b.text }}</span>
+                      @if (editMode()) {
+                        <button type="button" class="r-edit-btn r-edit-btn--danger no-print" aria-label="Delete bullet" (click)="removeResumeBullet(e.id, b.id)">
+                          ×
+                        </button>
+                      }
+                    </li>
                   }
                 </ul>
+                @if (editMode()) {
+                  <div class="r-inline-add no-print">
+                    <input
+                      type="text"
+                      placeholder="Add bullet point…"
+                      [ngModel]="newBulletDrafts()[e.id]"
+                      (ngModelChange)="setBulletDraft(e.id, $event)"
+                      (keydown.enter)="addResumeBullet(e.id)"
+                    />
+                    <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeBullet(e.id)">+ Add</button>
+                  </div>
+                }
               </div>
             }
           </section>
         }
 
-        @if (v.education.length) {
+        @if (vs.visibleEducation().length || editMode()) {
           <section class="r-section">
-            <h2>Education</h2>
-            @for (ed of v.education; track ed.id) {
+            <h2 class="r-section__head">
+              <span>Education</span>
+              @if (editMode() && !addingEdu()) {
+                <button type="button" class="r-edit-btn no-print" (click)="addingEdu.set(true)">+ Add education</button>
+              }
+            </h2>
+            @if (editMode() && addingEdu()) {
+              <div class="r-inline-form no-print">
+                <div class="r-inline-form__grid">
+                  <input type="text" placeholder="Degree" [ngModel]="newEdu().degree" (ngModelChange)="updateNewEduField('degree', $event)" />
+                  <input type="text" placeholder="Institution" [ngModel]="newEdu().institution" (ngModelChange)="updateNewEduField('institution', $event)" />
+                  <input type="text" placeholder="Year (e.g. 2016 - 2020)" [ngModel]="newEdu().year" (ngModelChange)="updateNewEduField('year', $event)" />
+                </div>
+                <div class="r-inline-form__actions">
+                  <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeEducation()">Add education</button>
+                  <button type="button" class="r-edit-btn" (click)="addingEdu.set(false)">Cancel</button>
+                </div>
+              </div>
+            }
+            @for (ed of vs.visibleEducation(); track ed.id) {
               <div class="r-edu">
                 <h3>
                   <span class="r-entity">
@@ -149,17 +266,45 @@
                       <span class="r-company">{{ ed.institution }}</span>
                     }
                   </span>
-                  <span class="r-dates">{{ ed.year }}</span>
+                  <span class="r-dates">
+                    {{ ed.year }}
+                    @if (editMode()) {
+                      <button type="button" class="r-edit-btn r-edit-btn--danger no-print" (click)="removeResumeEducation(ed.id)">
+                        Delete
+                      </button>
+                    }
+                  </span>
                 </h3>
               </div>
             }
           </section>
         }
 
-        @if (skills().length) {
+        @if (skills().length || editMode()) {
           <section class="r-section">
-            <h2>Skills</h2>
-            <p>{{ skills().join(', ') }}</p>
+            <h2 class="r-section__head"><span>Skills</span></h2>
+            @if (editMode()) {
+              <div class="r-skills-edit no-print">
+                @for (sk of skills(); track sk) {
+                  <span class="r-skill-chip">
+                    {{ sk }}
+                    <button type="button" class="r-edit-btn r-edit-btn--danger" [attr.aria-label]="'Remove ' + sk" (click)="removeResumeSkill(sk)">×</button>
+                  </span>
+                }
+              </div>
+              <div class="r-inline-add no-print">
+                <input
+                  type="text"
+                  placeholder="Add skill…"
+                  [ngModel]="newSkill()"
+                  (ngModelChange)="newSkill.set($event)"
+                  (keydown.enter)="addResumeSkill()"
+                />
+                <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeSkill()">+ Add</button>
+              </div>
+            } @else {
+              <p>{{ skills().join(', ') }}</p>
+            }
           </section>
         }
 
