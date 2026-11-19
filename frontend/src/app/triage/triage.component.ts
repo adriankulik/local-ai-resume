@@ -4,6 +4,7 @@ import {
   LucideEye,
   LucideFileDown,
   LucideRotateCcw,
+  LucideSparkles,
   LucideZap,
 } from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
@@ -19,6 +20,7 @@ export interface KeywordMatch {
   bullet: { id: string; text: string; role: string; company: string } | null;
   onResume: boolean;
   inSkills: boolean;
+  inCerts: boolean;
 }
 
 export const STRICT_BULLET_CAP = 14;
@@ -40,6 +42,7 @@ export class TriageComponent {
   readonly exportIcon = LucideFileDown.icon;
   readonly previewIcon = LucideEye.icon;
   readonly zapIcon = LucideZap.icon;
+  readonly sparklesIcon = LucideSparkles.icon;
   readonly resetIcon = LucideRotateCcw.icon;
 
   readonly triageOpen = signal(true);
@@ -47,6 +50,7 @@ export class TriageComponent {
   readonly keywords = signal<string[]>([]);
   readonly source = signal<'ai' | 'fallback' | null>(null);
   readonly analyzing = signal(false);
+  readonly enhancing = signal(false);
   readonly extracting = signal(false);
   readonly distilling = signal(false);
   readonly error = signal('');
@@ -79,6 +83,13 @@ export class TriageComponent {
     'Almost done…',
   ];
 
+  readonly enhancingMessages = [
+    'Identifying uncovered ATS keywords…',
+    'Enhancing summary and skills…',
+    'Drafting targeted resume bullets…',
+    'Polishing ATS coverage…',
+  ];
+
   get bulletCount(): number {
     return this.vs.vault().experience.reduce((sum, e) => sum + e.bullets.length, 0);
   }
@@ -88,10 +99,13 @@ export class TriageComponent {
   }
 
   viewPreview(): void {
+    this.layout.markStepCompleted('triage');
     this.layout.setActiveTab('preview');
   }
 
   exportPdf(): void {
+    this.layout.markStepCompleted('triage');
+    this.layout.markStepCompleted('preview');
     this.layout.setActiveTab('preview');
     this.ext.exportPdf(this.vs.vault().contact.fullName);
   }
@@ -106,6 +120,8 @@ export class TriageComponent {
     this.vs.tailoredSummary.set(null);
     this.vs.tailoredSkills.set(null);
     this.vs.selectAll();
+    this.layout.unmarkStepCompleted('triage');
+    this.layout.unmarkStepCompleted('preview');
   }
 
   continueManually(): void {
@@ -121,6 +137,7 @@ export class TriageComponent {
     if (this.vs.selectedBulletIds().size === 0) {
       this.vs.selectAll();
     }
+    this.layout.markStepCompleted('triage');
   }
 
   toggleManualInput(): void {
@@ -139,6 +156,7 @@ export class TriageComponent {
     const v = this.vs.vault();
     const selected = this.vs.selectedBulletIds();
     const skills = this.vs.tailoredSkills() ?? v.skills;
+    const certs = this.vs.visibleCertifications();
     const bullets = v.experience.flatMap((e) =>
       e.bullets.map((b) => ({ id: b.id, text: b.text, role: e.role, company: e.company })),
     );
@@ -155,12 +173,17 @@ export class TriageComponent {
         bullet: pick,
         onResume: !!pick && selected.has(pick.id),
         inSkills: skills.some((s) => textHasKeyword(s, keyword) || normalize(s) === normalize(keyword)),
+        inCerts: certs.some((c) => textHasKeyword(`${c.name} ${c.issuer}`, keyword)),
       };
     });
   });
-  readonly matchedCount = computed(() => this.matches().filter((m) => m.bullet || m.inSkills).length);
+  readonly matchedCount = computed(() => this.matches().filter((m) => m.bullet || m.inSkills || m.inCerts).length);
   /** Keywords with no supporting bullet — candidates for the bullet proposer. */
   readonly missing = computed(() => this.matches().filter((m) => !m.bullet).map((m) => m.keyword));
+  /** Keywords completely uncovered (not in bullets, skills, or certifications) — causes ATS match < 100%. */
+  readonly uncoveredKeywords = computed(() =>
+    this.matches().filter((m) => !m.bullet && !m.inSkills && !m.inCerts).map((m) => m.keyword),
+  );
   readonly cap = computed(() => (this.vs.settings().strictOnePage ? STRICT_BULLET_CAP : LOOSE_BULLET_CAP));
   readonly selectedCount = computed(() => this.vs.selectedBulletIds().size);
 
@@ -176,6 +199,7 @@ export class TriageComponent {
       this.vs.tailoredSummary.set(res.summary);
       this.vs.tailoredSkills.set(this.orderSkills(res.relevantSkills));
       this.source.set(res.source);
+      this.layout.markStepCompleted('triage');
       if (!res.selectedBulletIds.length) {
         this.error.set('No matching bullets found — select bullets manually below.');
       }
@@ -272,5 +296,50 @@ export class TriageComponent {
 
   dismissProposal(expId: string, idx: number): void {
     this.proposals.update((p) => ({ ...p, [expId]: (p[expId] ?? []).filter((_, i) => i !== idx) }));
+  }
+
+  async enhanceMissingKeywords(): Promise<void> {
+    const missing = this.uncoveredKeywords();
+    if (!missing.length || this.enhancing()) return;
+    this.enhancing.set(true);
+    this.error.set('');
+    try {
+      const vault = this.vs.vault();
+      const res = await this.ai.enhanceWithMissingKeywords(
+        vault,
+        this.jd(),
+        missing,
+        this.vs.tailoredSummary() ?? vault.summary,
+      );
+      if (res.summary) {
+        this.vs.tailoredSummary.set(res.summary);
+      }
+      if (res.suggestedSkills.length) {
+        const current = this.vs.tailoredSkills() ?? vault.skills;
+        const seen = new Set(current.map((s) => normalize(s)));
+        const merged = [...current];
+        for (const sk of res.suggestedSkills) {
+          const norm = normalize(sk);
+          if (norm && !seen.has(norm)) {
+            seen.add(norm);
+            merged.push(sk);
+          }
+        }
+        this.vs.tailoredSkills.set(merged);
+      }
+      const targetExp = vault.experience[0];
+      if (targetExp && res.proposedBullets.length) {
+        this.proposals.update((p) => ({
+          ...p,
+          [targetExp.id]: [...(p[targetExp.id] ?? []), ...res.proposedBullets],
+        }));
+        this.triageOpen.set(true);
+      }
+    } catch (e) {
+      console.warn(e);
+      this.error.set('Could not enhance resume with AI. Check that an AI provider is available.');
+    } finally {
+      this.enhancing.set(false);
+    }
   }
 }

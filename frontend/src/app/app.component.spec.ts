@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { VaultService } from './core/vault.service';
+import { LayoutService } from './core/layout.service';
 
 describe('AppComponent', () => {
   beforeEach(() => {
@@ -68,5 +69,22 @@ describe('AppComponent', () => {
     comp.aboutOpen.set(false);
     fixture.detectChanges();
     expect(el.querySelector('app-about')).toBeFalsy();
+  });
+
+  it('marks completed workspace steps with the completed class', async () => {
+    await TestBed.configureTestingModule({ imports: [AppComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(AppComponent);
+    const vs = TestBed.inject(VaultService);
+    const layout = TestBed.inject(LayoutService);
+    vs.completeOnboarding();
+    layout.markStepCompleted('triage');
+    layout.markStepCompleted('preview');
+    fixture.detectChanges();
+
+    const tabButtons = Array.from(fixture.nativeElement.querySelectorAll('.tabs button')) as HTMLButtonElement[];
+    expect(tabButtons.length).toBe(3);
+    expect(tabButtons[0].classList.contains('completed')).toBeTrue();
+    expect(tabButtons[1].classList.contains('completed')).toBeTrue();
+    expect(tabButtons[2].classList.contains('completed')).toBeTrue();
   });
 });

@@ -53,6 +53,10 @@ export class AppComponent implements OnInit {
     { id: 'preview', label: '3. Preview' },
   ];
 
+  isStepCompleted(id: WorkspaceTab): boolean {
+    return this.layout.isStepCompleted(id) || (id === 'vault' && this.vs.onboarded());
+  }
+
   ngOnInit(): void {
     if (typeof window === 'undefined') return;
 

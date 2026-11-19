@@ -86,7 +86,23 @@ app-root { display: flex; flex-direction: column; height: 100vh; }
     flex: 1; height: 32px; border-radius: v.$radius-pill; border: 1px solid var(--c-chip-border);
     background: var(--c-chip-bg); color: var(--c-ink-secondary);
     font-family: v.$font-mono; font-size: v.$fs-xs; letter-spacing: v.$ls-wide; text-transform: lowercase; cursor: pointer;
-    &.active { background: var(--c-ink-primary); color: var(--c-bg); border-color: var(--c-ink-primary); }
+    display: inline-flex; align-items: center; justify-content: center; gap: v.$sp-1;
+    transition: background v.$dur-base v.$ease-out, border-color v.$dur-base v.$ease-out, color v.$dur-base v.$ease-out;
+    &.completed {
+      background: var(--c-status-ok-bg);
+      border-color: var(--c-status-ok-border);
+      color: var(--c-status-ok-ink);
+    }
+    &.active {
+      background: var(--c-ink-primary);
+      color: var(--c-bg);
+      border-color: var(--c-ink-primary);
+    }
+    &.completed.active {
+      background: var(--c-status-ok-ink);
+      border-color: var(--c-status-ok-ink);
+      color: var(--c-bg);
+    }
   }
 }
 

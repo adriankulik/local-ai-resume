@@ -34,6 +34,7 @@ export function vaultText(vault: MasterVault): string {
     vault.skills.join(' '),
     ...vault.experience.flatMap((e) => [e.role, e.company, ...e.bullets.map((b) => b.text)]),
     ...vault.education.map((e) => `${e.degree} ${e.institution}`),
+    ...vault.certifications.map((c) => `${c.name} ${c.issuer}`),
   ].join('\n');
 }
 

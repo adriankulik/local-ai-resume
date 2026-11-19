@@ -66,4 +66,68 @@ describe('VaultEditorComponent', () => {
     const linkedinInput = el.querySelector('input[placeholder="linkedin.com/in/username"]') as HTMLInputElement;
     expect(linkedinInput).toBeTruthy();
   });
+
+  it('renders a Save button in the modal footer for summary, experience, education, and skills popups', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    for (const kind of ['summary', 'experience', 'education', 'certifications', 'skills'] as const) {
+      comp.dialog.set(kind);
+      fixture.detectChanges();
+
+      const footerBtn = fixture.nativeElement.querySelector('.modal__footer button.app-button--primary') as HTMLButtonElement | null;
+      expect(footerBtn).withContext(`Save button for ${kind}`).toBeTruthy();
+      expect(footerBtn?.textContent?.trim()).toBe('Save');
+
+      footerBtn?.click();
+      fixture.detectChanges();
+      expect(comp.dialog()).withContext(`dialog closed after Save for ${kind}`).toBeNull();
+    }
+  });
+
+  it('commits skills when clicking Save in Edit skills modal', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    comp.dialog.set('skills');
+    fixture.detectChanges();
+
+    const textarea = fixture.nativeElement.querySelector('app-modal textarea') as HTMLTextAreaElement;
+    textarea.value = 'TypeScript, Angular, Testing';
+    const saveBtn = fixture.nativeElement.querySelector('.modal__footer button') as HTMLButtonElement;
+    saveBtn.click();
+    fixture.detectChanges();
+
+    expect(vs.vault().skills).toEqual(['TypeScript', 'Angular', 'Testing']);
+    expect(comp.dialog()).toBeNull();
+  });
+
+  it('renders + Add role and + Add education as secondary buttons inside .row.wrap', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    comp.dialog.set('experience');
+    fixture.detectChanges();
+    const addRoleBtn = fixture.nativeElement.querySelector('.modal__body .row.wrap button.app-button--secondary') as HTMLButtonElement | null;
+    expect(addRoleBtn?.textContent?.trim()).toBe('+ Add role');
+
+    comp.dialog.set('education');
+    fixture.detectChanges();
+    const addEduBtn = fixture.nativeElement.querySelector('.modal__body .row.wrap button.app-button--secondary') as HTMLButtonElement | null;
+    expect(addEduBtn?.textContent?.trim()).toBe('+ Add education');
+
+    comp.dialog.set('certifications');
+    fixture.detectChanges();
+    const addCertBtn = fixture.nativeElement.querySelector('.modal__body .row.wrap button.app-button--secondary') as HTMLButtonElement | null;
+    expect(addCertBtn?.textContent?.trim()).toBe('+ Add certification');
+  });
 });

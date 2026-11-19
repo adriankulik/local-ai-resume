@@ -20,6 +20,13 @@ export interface Education {
   year: string;
 }
 
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  year: string;
+}
+
 export type ThemeName = 'classic-serif' | 'modern-slate' | 'minimal-mono';
 
 export interface VaultSettings {
@@ -45,6 +52,7 @@ export interface MasterVault {
   summary: string;
   experience: Experience[];
   education: Education[];
+  certifications: Certification[];
   skills: string[];
   settings: VaultSettings;
 }
@@ -61,6 +69,7 @@ export function emptyVault(): MasterVault {
     summary: '',
     experience: [],
     education: [],
+    certifications: [],
     skills: [],
     settings: {
       theme: 'modern-slate',
@@ -119,6 +128,12 @@ export function normalizeVault(raw: unknown): MasterVault {
     institution: str(e?.institution),
     year: str(e?.year),
   }));
+  base.certifications = (Array.isArray(r['certifications']) ? r['certifications'] : []).map((c: any) => ({
+    id: uid('cert', c?.id),
+    name: str(c?.name),
+    issuer: str(c?.issuer),
+    year: str(c?.year),
+  }));
 
   const s = (r['settings'] ?? {}) as Record<string, any>;
   const themes = THEMES.map((t) => t.value);
@@ -137,13 +152,14 @@ export function normalizeVault(raw: unknown): MasterVault {
 }
 
 /** Generates the next unique id with the given prefix across the whole vault. */
-export function nextId(vault: MasterVault, prefix: 'exp' | 'b' | 'edu'): string {
+export function nextId(vault: MasterVault, prefix: 'exp' | 'b' | 'edu' | 'cert'): string {
   const ids = new Set<string>();
   vault.experience.forEach((e) => {
     ids.add(e.id);
     e.bullets.forEach((b) => ids.add(b.id));
   });
   vault.education.forEach((e) => ids.add(e.id));
+  vault.certifications.forEach((c) => ids.add(c.id));
   let n = prefix === 'b' ? 101 : 1;
   while (ids.has(`${prefix}_${n}`)) n++;
   return `${prefix}_${n}`;

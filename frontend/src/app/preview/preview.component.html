@@ -4,17 +4,6 @@
     <div class="toolbar__head">
       <h2 class="panel-title">Live A4 Preview</h2>
       <div class="toolbar__actions">
-        <button
-          app-button
-          type="button"
-          [variant]="editMode() ? 'primary' : 'secondary'"
-          size="md"
-          [iconLeading]="editIcon"
-          [attr.aria-pressed]="editMode()"
-          (click)="toggleEditMode()"
-        >
-          {{ editMode() ? 'Done editing' : 'Edit resume' }}
-        </button>
         <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
       </div>
     </div>
@@ -84,6 +73,19 @@
   </div>
 
   <div class="stage" #stage>
+    <div class="stage-bar no-print" [style.width.px]="793.7 * scale()">
+      <button
+        app-button
+        type="button"
+        [variant]="editMode() ? 'primary' : 'secondary'"
+        size="sm"
+        [iconLeading]="editIcon"
+        [attr.aria-pressed]="editMode()"
+        (click)="toggleEditMode()"
+      >
+        {{ editMode() ? 'Done editing' : 'Edit resume' }}
+      </button>
+    </div>
     <div class="sheet-wrap" [style.width.px]="793.7 * scale()" [style.height.px]="sheetHeight() * scale()">
       <article
         #sheet
@@ -99,15 +101,11 @@
           <div class="r-id">
             <h1>{{ v.contact.fullName || 'Your Name' }}</h1>
             <div class="r-contact">
-              @if (primaryContact().length) {
-                <div class="r-contact__row r-contact__row--primary">
+              @if (primaryContact().length || linkedinLink() || contactLinks().length) {
+                <div class="r-contact__row">
                   @for (c of primaryContact(); track $index) {
                     <span class="r-contact__item">{{ c }}</span>
                   }
-                </div>
-              }
-              @if (linkedinLink() || contactLinks().length) {
-                <div class="r-contact__row r-contact__row--links">
                   @if (linkedinLink(); as li) {
                     <a class="r-contact__item r-contact__link r-contact__link--linkedin" [href]="li.url" target="_blank" rel="noopener noreferrer">
                       <svg class="r-contact__icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
@@ -117,7 +115,14 @@
                     </a>
                   }
                   @for (l of contactLinks(); track $index) {
-                    <a class="r-contact__item r-contact__link" [href]="l.url" target="_blank" rel="noopener noreferrer">{{ l.display }}</a>
+                    <a class="r-contact__item r-contact__link r-contact__link--web" [href]="l.url" target="_blank" rel="noopener noreferrer">
+                      <svg class="r-contact__icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                        <path d="M2 12h20"/>
+                      </svg>
+                      <span>{{ l.display }}</span>
+                    </a>
                   }
                 </div>
               }
@@ -275,6 +280,57 @@
                     }
                   </span>
                 </h3>
+              </div>
+            }
+          </section>
+        }
+
+        @if (vs.visibleCertifications().length || editMode()) {
+          <section class="r-section">
+            <h2 class="r-section__head">
+              <span>Certifications</span>
+              @if (editMode() && !addingCert()) {
+                <button type="button" class="r-edit-btn no-print" (click)="addingCert.set(true)">+ Add certification</button>
+              }
+            </h2>
+            @if (editMode() && addingCert()) {
+              <div class="r-inline-form no-print">
+                <div class="r-inline-form__grid">
+                  <input type="text" placeholder="Certification name" [ngModel]="newCert().name" (ngModelChange)="updateNewCertField('name', $event)" />
+                  <input type="text" placeholder="Issuer" [ngModel]="newCert().issuer" (ngModelChange)="updateNewCertField('issuer', $event)" />
+                  <input type="text" placeholder="Year (e.g. 2024)" [ngModel]="newCert().year" (ngModelChange)="updateNewCertField('year', $event)" />
+                </div>
+                <div class="r-inline-form__actions">
+                  <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeCertification()">Add certification</button>
+                  <button type="button" class="r-edit-btn" (click)="addingCert.set(false)">Cancel</button>
+                </div>
+              </div>
+            }
+            @if (vs.visibleCertifications().length) {
+              <div class="r-certs">
+                @for (cert of vs.visibleCertifications(); track cert.id) {
+                  <span class="r-cert-chip">
+                    @if (cert.name) {
+                      <span class="r-cert-chip__name">{{ cert.name }}</span>
+                    }
+                    @if (cert.issuer) {
+                      <span class="r-cert-chip__meta">{{ cert.name ? '· ' : '' }}{{ cert.issuer }}</span>
+                    }
+                    @if (cert.year) {
+                      <span class="r-cert-chip__meta">({{ cert.year }})</span>
+                    }
+                    @if (editMode()) {
+                      <button
+                        type="button"
+                        class="r-edit-btn r-edit-btn--danger no-print"
+                        [attr.aria-label]="'Remove ' + (cert.name || 'certification')"
+                        (click)="removeResumeCertification(cert.id)"
+                      >
+                        ×
+                      </button>
+                    }
+                  </span>
+                }
               </div>
             }
           </section>

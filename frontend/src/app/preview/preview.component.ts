@@ -6,6 +6,7 @@ import { DropdownComponent } from '../dropdown/dropdown.component';
 import { ToggleComponent } from '../toggle/toggle.component';
 import { ButtonComponent } from '../button/button.component';
 import { ExtensionService } from '../core/extension.service';
+import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
 import { Experience, THEMES, ThemeName, VaultSettings, nextId } from '../core/vault.model';
 
@@ -42,6 +43,8 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly newRole = signal({ role: '', company: '', startDate: '', endDate: '', bullet: '' });
   readonly addingEdu = signal(false);
   readonly newEdu = signal({ degree: '', institution: '', year: '' });
+  readonly addingCert = signal(false);
+  readonly newCert = signal({ name: '', issuer: '', year: '' });
   readonly newSkill = signal('');
   readonly editingSummary = signal(false);
   readonly summaryDraft = signal('');
@@ -307,6 +310,52 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  updateNewCertField<K extends 'name' | 'issuer' | 'year'>(key: K, value: string): void {
+    this.newCert.update((c) => ({ ...c, [key]: value }));
+  }
+
+  addResumeCertification(): void {
+    const draft = this.newCert();
+    const name = draft.name.trim();
+    const issuer = draft.issuer.trim();
+    if (!name && !issuer) return;
+
+    const id = `rcert_${Date.now()}`;
+    const entry = { id, name, issuer, year: draft.year.trim() };
+    this.vs.resumeOnlyCertifications.update((list) => [...list, entry]);
+    this.newCert.set({ name: '', issuer: '', year: '' });
+    this.addingCert.set(false);
+
+    this.pendingVaultPrompt.set({
+      label: 'certification entry',
+      commit: () => {
+        const current = this.vs.resumeOnlyCertifications().find((c) => c.id === id);
+        if (!current) return;
+        this.vs.update((v) => {
+          v.certifications.push({
+            id: nextId(v, 'cert'),
+            name: current.name,
+            issuer: current.issuer,
+            year: current.year,
+          });
+        });
+        this.vs.resumeOnlyCertifications.update((list) => list.filter((c) => c.id !== id));
+      },
+    });
+  }
+
+  removeResumeCertification(certId: string): void {
+    if (this.vs.resumeOnlyCertifications().some((c) => c.id === certId)) {
+      this.vs.resumeOnlyCertifications.update((list) => list.filter((c) => c.id !== certId));
+      return;
+    }
+    this.vs.hiddenCertificationIds.update((set) => {
+      const next = new Set(set);
+      next.add(certId);
+      return next;
+    });
+  }
+
   addResumeSkill(): void {
     const skill = this.newSkill().trim();
     if (!skill) return;
@@ -366,8 +415,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   }
 
   readonly ext = inject(ExtensionService);
+  private readonly layout = inject(LayoutService);
 
   print(): void {
+    this.layout.markStepCompleted('preview');
     this.ext.exportPdf(this.vs.vault().contact.fullName);
   }
 }

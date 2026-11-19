@@ -47,3 +47,16 @@
   padding: v.$sp-5;
   overflow-y: auto;
 }
+
+.modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: v.$sp-2;
+  padding: v.$sp-3 v.$sp-5;
+  border-top: 1px solid var(--c-rule);
+
+  &:empty {
+    display: none;
+  }
+}

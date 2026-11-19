@@ -79,16 +79,6 @@
     gap: v.$sp-2;
   }
 
-  .companion-badge {
-    @include m.label-mono;
-    font-size: v.$fs-xs;
-    padding: 2px 8px;
-    border-radius: v.$radius-pill;
-    background: var(--c-chip-bg);
-    border: 1px solid var(--c-chip-border);
-    color: var(--c-accent);
-  }
-
   .companion-title {
     font-size: v.$fs-lg;
     font-weight: v.$fw-semibold;
