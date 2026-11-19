@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideSparkles, LucideCheck, LucideArrowLeft, LucidePlus, LucideTrash2 } from '@lucide/angular';
+import { LucideSparkles, LucideCheck, LucideArrowLeft, LucideArrowRight, LucidePlus, LucideTrash2 } from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
 import { VaultService } from '../core/vault.service';
 import { AiService } from '../core/ai.service';
+import { LayoutService } from '../core/layout.service';
 import { defaultVault } from '../core/default-vault';
 import { MasterVault } from '../core/vault.model';
 
@@ -20,6 +21,7 @@ type OnboardingStep = 'paste' | 'review';
 export class OnboardingComponent {
   readonly vs = inject(VaultService);
   readonly ai = inject(AiService);
+  readonly layout = inject(LayoutService);
 
   readonly step = signal<OnboardingStep>('paste');
   readonly rawText = signal('');
@@ -41,6 +43,7 @@ export class OnboardingComponent {
   readonly sparklesIcon = LucideSparkles.icon;
   readonly checkIcon = LucideCheck.icon;
   readonly backIcon = LucideArrowLeft.icon;
+  readonly arrowRightIcon = LucideArrowRight.icon;
   readonly plusIcon = LucidePlus.icon;
   readonly trashIcon = LucideTrash2.icon;
 
@@ -71,6 +74,7 @@ export class OnboardingComponent {
 
   async clearAll(): Promise<void> {
     await this.vs.clearAllData();
+    this.layout.resetCompletedSteps();
     this.rawText.set('');
     this.draft.set(defaultVault());
     this.step.set('paste');
@@ -116,5 +120,8 @@ export class OnboardingComponent {
   saveAndProceed(): void {
     this.vs.setVault(this.draft(), true);
     this.vs.completeOnboarding();
+    this.layout.markStepCompleted('vault');
+    this.layout.setActiveTab('triage');
+    this.layout.setTriageCollapsed(false);
   }
 }

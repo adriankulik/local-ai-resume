@@ -43,14 +43,18 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
   const location = locationMatch && locationMatch[1].length < 40 ? locationMatch[1] : base.contact.location;
 
   // 2. Section splitting
-  const SECTION_HEADERS: { type: 'summary' | 'experience' | 'skills' | 'education'; pattern: RegExp }[] = [
+  const SECTION_HEADERS: {
+    type: 'summary' | 'experience' | 'skills' | 'education' | 'certifications';
+    pattern: RegExp;
+  }[] = [
     { type: 'summary', pattern: /^(summary|professional summary|profile|about me|objective)\b/i },
     { type: 'experience', pattern: /^(experience|work experience|employment history|work history|professional experience)\b/i },
     { type: 'skills', pattern: /^(skills|technical skills|core competencies|technologies)\b/i },
     { type: 'education', pattern: /^(education|academic background|qualifications)\b/i },
+    { type: 'certifications', pattern: /^(certifications?|licenses?\s*(?:&|and)?\s*certifications?|credentials?)\b/i },
   ];
 
-  type SectionType = 'header' | 'summary' | 'experience' | 'skills' | 'education';
+  type SectionType = 'header' | 'summary' | 'experience' | 'skills' | 'education' | 'certifications';
   let currentSection: SectionType = 'header';
   const sectionContent: Record<SectionType, string[]> = {
     header: [],
@@ -58,6 +62,7 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
     experience: [],
     skills: [],
     education: [],
+    certifications: [],
   };
 
   for (const line of lines) {
@@ -165,6 +170,28 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
       }))
     : base.education;
 
+  // 7. Certifications
+  const rawCerts = sectionContent.certifications
+    .map((line) => line.replace(/^[\u2022\-*•●○▪▫]\s*/, '').trim())
+    .filter((line) => line.length > 2)
+    .map((line) => {
+      const parts = line.split(/[,–—|-]/).map((p) => p.trim());
+      return {
+        name: parts[0] || line,
+        issuer: parts[1] || '',
+        year: parts[2] || '',
+      };
+    });
+
+  const certifications = rawCerts.length
+    ? rawCerts.map((c, i) => ({
+        id: `cert_${i + 1}`,
+        name: c.name,
+        issuer: c.issuer,
+        year: c.year,
+      }))
+    : base.certifications;
+
   const draft: MasterVault = {
     contact: {
       fullName: fullName || base.contact.fullName,
@@ -178,6 +205,7 @@ export function fallbackParseResume(text: string, base: MasterVault): MasterVaul
     summary,
     experience,
     education,
+    certifications,
     skills,
     settings: base.settings,
   };

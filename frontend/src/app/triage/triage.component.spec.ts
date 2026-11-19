@@ -137,4 +137,64 @@ describe('TriageComponent', () => {
     expect(component.source()).toBeNull();
     expect(vaultService.tailoredSummary()).toBeNull();
   });
+
+  it('shows Enhance with AI button in Keywords & Bullets only when ATS match is below 100%', async () => {
+    await vaultService.ready;
+    const firstSkill = vaultService.vault().skills[0] || 'TypeScript';
+    component.keywords.set([firstSkill, 'NonExistentQuantumSkillXYZ']);
+    fixture.detectChanges();
+
+    const btnBelow = fixture.nativeElement.querySelector('section[aria-label="ATS keyword match"] .card-head button') as HTMLButtonElement | null;
+    expect(btnBelow).toBeTruthy();
+    expect(btnBelow?.textContent?.trim()).toBe('Enhance with AI');
+
+    component.keywords.set([firstSkill]);
+    fixture.detectChanges();
+
+    const btnFull = fixture.nativeElement.querySelector('section[aria-label="ATS keyword match"] .card-head button');
+    expect(btnFull).toBeNull();
+  });
+
+  it('enhances summary, skills, and bullet proposals when enhanceMissingKeywords is called', async () => {
+    await vaultService.ready;
+    const firstSkill = vaultService.vault().skills[0] || 'TypeScript';
+    component.jd.set('Looking for Kubernetes and GraphQL experience');
+    component.keywords.set([firstSkill, 'Kubernetes', 'GraphQL']);
+    fixture.detectChanges();
+
+    const enhanceSpy = spyOn(aiService, 'enhanceWithMissingKeywords').and.resolveTo({
+      summary: 'Enhanced summary with Kubernetes and GraphQL.',
+      proposedBullets: ['Deployed microservices on Kubernetes with GraphQL APIs.'],
+      suggestedSkills: ['Kubernetes', 'GraphQL'],
+    });
+
+    await component.enhanceMissingKeywords();
+    fixture.detectChanges();
+
+    expect(enhanceSpy).toHaveBeenCalled();
+    expect(vaultService.tailoredSummary()).toBe('Enhanced summary with Kubernetes and GraphQL.');
+    expect(vaultService.tailoredSkills()).toContain('Kubernetes');
+    expect(vaultService.tailoredSkills()).toContain('GraphQL');
+    const firstExpId = vaultService.vault().experience[0].id;
+    expect(component.proposals()[firstExpId]).toEqual(['Deployed microservices on Kubernetes with GraphQL APIs.']);
+    expect(component.matchedCount()).toBe(component.matches().length);
+  });
+
+  it('counts keywords covered in certifications toward ATS match', async () => {
+    await vaultService.ready;
+    vaultService.update((v) => {
+      v.certifications.push({
+        id: 'cert_1',
+        name: 'AWS Certified Solutions Architect',
+        issuer: 'Amazon Web Services',
+        year: '2024',
+      });
+    });
+    component.keywords.set(['AWS']);
+    fixture.detectChanges();
+
+    expect(component.matches()[0].inCerts).toBeTrue();
+    expect(component.matchedCount()).toBe(1);
+    expect(component.uncoveredKeywords()).toEqual([]);
+  });
 });

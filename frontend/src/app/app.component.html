@@ -33,9 +33,13 @@
       <button
         type="button"
         [class.active]="tab() === t.id"
+        [class.completed]="isStepCompleted(t.id)"
         [attr.aria-current]="tab() === t.id ? 'step' : null"
         (click)="layout.setActiveTab(t.id)"
       >
+        @if (isStepCompleted(t.id)) {
+          <span class="tab-check" aria-hidden="true">&#10003;</span>
+        }
         {{ t.label }}
       </button>
     }

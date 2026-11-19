@@ -53,6 +53,16 @@ const proposalSchema = {
   required: ['proposedBullets'],
 };
 
+const enhanceSchema = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string' },
+    proposedBullets: { type: 'array', items: { type: 'string' } },
+    suggestedSkills: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['proposedBullets'],
+};
+
 const str = { type: 'string' };
 const vaultSchema = {
   type: 'object',
@@ -83,6 +93,14 @@ const vaultSchema = {
         type: 'object',
         properties: { degree: str, institution: str, year: str },
         required: ['degree', 'institution', 'year'],
+      },
+    },
+    certifications: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { name: str, issuer: str, year: str },
+        required: ['name', 'issuer', 'year'],
       },
     },
     skills: { type: 'array', items: str },
@@ -350,6 +368,49 @@ export class AiService {
     return (res.proposedBullets ?? []).map((b) => b.trim()).filter(Boolean).slice(0, 2);
   }
 
+  /**
+   * Enhances resume content (proposed bullets, tailored summary, and skills) to address
+   * missing ATS keywords. Throws if AI is unavailable or fails.
+   */
+  async enhanceWithMissingKeywords(
+    vault: MasterVault,
+    jd: string,
+    missingKeywords: string[],
+    currentSummary?: string,
+  ): Promise<{ summary?: string; proposedBullets: string[]; suggestedSkills: string[] }> {
+    if (!missingKeywords.length) {
+      return { proposedBullets: [], suggestedSkills: [] };
+    }
+    const targetRole = vault.experience[0];
+    const system =
+      'You are an expert ATS Resume Coach. Enhance the candidate resume to naturally incorporate the missing job description keywords where plausible. ' +
+      'Return: (1) `proposedBullets`: up to 2 strong, metric-driven one-sentence bullets for the target role incorporating missing keywords; ' +
+      '(2) `summary`: an updated 2-3 sentence professional summary weaving in relevant missing keywords without inventing false claims; ' +
+      '(3) `suggestedSkills`: missing technical/domain keywords from the missing list that belong in the skills section. ' +
+      LANGUAGE_RULE;
+    const roleContext = targetRole
+      ? `TARGET ROLE: ${targetRole.role} at ${targetRole.company}\nEXISTING BULLETS:\n${targetRole.bullets.map((b) => `- ${b.text}`).join('\n')}`
+      : 'TARGET ROLE: (none)';
+    const input =
+      `CURRENT SUMMARY: ${currentSummary ?? vault.summary}\n` +
+      `CURRENT SKILLS: ${vault.skills.join(', ')}\n` +
+      `${roleContext}\n\n` +
+      `MISSING KEYWORDS: ${missingKeywords.join(', ')}\n\n` +
+      `JOB DESCRIPTION:\n${jd || '(not provided)'}`;
+
+    const res = await this.promptJson<{
+      summary?: string;
+      proposedBullets?: string[];
+      suggestedSkills?: string[];
+    }>(system, input, enhanceSchema);
+
+    return {
+      summary: res.summary?.trim() || undefined,
+      proposedBullets: (res.proposedBullets ?? []).map((b) => b.trim()).filter(Boolean).slice(0, 2),
+      suggestedSkills: [...new Set((res.suggestedSkills ?? []).map((s) => s.trim()).filter(Boolean))],
+    };
+  }
+
   /** Converts pasted raw resume text into a MasterVault. Uses active AI provider when available, otherwise falls back to heuristic parsing. */
   async parseResume(text: string, base: MasterVault): Promise<MasterVault> {
     const system =
@@ -367,6 +428,7 @@ export class AiService {
           bullets: (e.bullets ?? []).map((t: string) => ({ id: `b_${++b}`, text: t })),
         })),
         education: (raw.education ?? []).map((e: any, i: number) => ({ ...e, id: `edu_${i + 1}` })),
+        certifications: (raw.certifications ?? []).map((c: any, i: number) => ({ ...c, id: `cert_${i + 1}` })),
         settings: base.settings,
       };
       const vault = normalizeVault(withIds);

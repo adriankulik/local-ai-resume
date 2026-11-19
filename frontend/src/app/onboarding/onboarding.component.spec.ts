@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { OnboardingComponent } from './onboarding.component';
 import { VaultService } from '../core/vault.service';
+import { LayoutService } from '../core/layout.service';
 
 describe('OnboardingComponent', () => {
   beforeEach(() => {
@@ -42,11 +43,23 @@ describe('OnboardingComponent', () => {
     const fixture = TestBed.createComponent(OnboardingComponent);
     const comp = fixture.componentInstance;
     const vs = TestBed.inject(VaultService);
+    const layout = TestBed.inject(LayoutService);
     fixture.detectChanges();
 
     comp.loadSample();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const linkedinInput = el.querySelector('input[placeholder="linkedin.com/in/username"]') as HTMLInputElement | null;
+    expect(linkedinInput).toBeTruthy();
+
+    const primaryBtn = el.querySelector('.review-sticky-footer button.app-button--primary') as HTMLButtonElement | null;
+    expect(primaryBtn?.textContent?.trim()).toBe('Save & continue');
+
     comp.saveAndProceed();
 
     expect(vs.onboarded()).toBeTrue();
+    expect(layout.activeTab()).toBe('triage');
+    expect(layout.isStepCompleted('vault')).toBeTrue();
   });
 });

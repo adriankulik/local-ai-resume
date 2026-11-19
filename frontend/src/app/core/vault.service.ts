@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
-import { Bullet, Education, Experience, MasterVault, normalizeVault, nextId } from './vault.model';
+import { Bullet, Certification, Education, Experience, MasterVault, normalizeVault, nextId } from './vault.model';
 import { defaultVault } from './default-vault';
 
 const VAULT_KEY = 'master-vault';
@@ -36,6 +36,8 @@ export class VaultService {
   readonly resumeOnlyExperience = signal<Experience[]>([]);
   readonly resumeOnlyEducation = signal<Education[]>([]);
   readonly hiddenEducationIds = signal<Set<string>>(new Set());
+  readonly resumeOnlyCertifications = signal<Certification[]>([]);
+  readonly hiddenCertificationIds = signal<Set<string>>(new Set());
   readonly hiddenSummary = signal(false);
 
   readonly settings = computed(() => this.vault().settings);
@@ -200,6 +202,14 @@ export class VaultService {
     this.update((v) => (v.education = v.education.filter((e) => e.id !== id)));
   }
 
+  addCertification(): void {
+    this.update((v) => v.certifications.push({ id: nextId(v, 'cert'), name: '', issuer: '', year: '' }));
+  }
+
+  removeCertification(id: string): void {
+    this.update((v) => (v.certifications = v.certifications.filter((c) => c.id !== id)));
+  }
+
   /** Experience filtered to selected bullets plus any resume-only additions. */
   selectedExperience = computed<Experience[]>(() => {
     const sel = this.selectedBulletIds();
@@ -217,6 +227,12 @@ export class VaultService {
   visibleEducation = computed<Education[]>(() => {
     const hidden = this.hiddenEducationIds();
     return [...this.vault().education.filter((e) => !hidden.has(e.id)), ...this.resumeOnlyEducation()];
+  });
+
+  /** Certification entries from the vault (excluding hidden ones) plus resume-only additions. */
+  visibleCertifications = computed<Certification[]>(() => {
+    const hidden = this.hiddenCertificationIds();
+    return [...this.vault().certifications.filter((c) => !hidden.has(c.id)), ...this.resumeOnlyCertifications()];
   });
 
   // --- Backup ---
@@ -246,6 +262,8 @@ export class VaultService {
     this.resumeOnlyExperience.set([]);
     this.resumeOnlyEducation.set([]);
     this.hiddenEducationIds.set(new Set());
+    this.resumeOnlyCertifications.set([]);
+    this.hiddenCertificationIds.set(new Set());
     this.hiddenSummary.set(false);
   }
 }

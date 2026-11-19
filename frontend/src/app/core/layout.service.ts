@@ -14,9 +14,36 @@ export class LayoutService {
   readonly vaultCollapsed = signal(false);
   readonly triageCollapsed = signal(false);
   readonly activeTab = signal<WorkspaceTab>('vault');
+  readonly completedSteps = signal<Set<WorkspaceTab>>(new Set());
 
   setActiveTab(tab: WorkspaceTab): void {
     this.activeTab.set(tab);
+  }
+
+  markStepCompleted(tab: WorkspaceTab): void {
+    this.completedSteps.update((set) => {
+      if (set.has(tab)) return set;
+      const next = new Set(set);
+      next.add(tab);
+      return next;
+    });
+  }
+
+  unmarkStepCompleted(tab: WorkspaceTab): void {
+    this.completedSteps.update((set) => {
+      if (!set.has(tab)) return set;
+      const next = new Set(set);
+      next.delete(tab);
+      return next;
+    });
+  }
+
+  resetCompletedSteps(): void {
+    this.completedSteps.set(new Set());
+  }
+
+  isStepCompleted(tab: WorkspaceTab): boolean {
+    return this.completedSteps().has(tab);
   }
 
   constructor() {

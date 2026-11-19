@@ -10,7 +10,14 @@ import { LucideArrowRight, LucideX } from '@lucide/angular';
 import { LayoutService } from '../core/layout.service';
 import { ExtensionService } from '../core/extension.service';
 
-export type EditorDialog = 'backup' | 'summary' | 'experience' | 'education' | 'skills' | 'confirm-reset';
+export type EditorDialog =
+  | 'backup'
+  | 'summary'
+  | 'experience'
+  | 'education'
+  | 'certifications'
+  | 'skills'
+  | 'confirm-reset';
 
 const MAX_PHOTO_PX = 400;
 const RAW_KEY = 'raw-resume-text';
@@ -80,6 +87,7 @@ export class VaultEditorComponent {
   }
 
   continueToJobMatch(): void {
+    this.layout.markStepCompleted('vault');
     this.layout.setActiveTab('triage');
     this.layout.setTriageCollapsed(false);
   }
@@ -178,6 +186,7 @@ export class VaultEditorComponent {
 
   async executeClearAll(): Promise<void> {
     await this.vs.clearAllData();
+    this.layout.resetCompletedSteps();
     this.dialog.set(null);
     this.rawText.set('');
   }

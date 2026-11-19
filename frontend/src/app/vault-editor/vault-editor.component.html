@@ -103,6 +103,17 @@
 
   <section class="card card--divided">
     <div class="card-head">
+      <h3>Certifications</h3>
+      <button app-button type="button" variant="ghost" size="sm" (click)="dialog.set('certifications')">Edit</button>
+    </div>
+    <hr class="divider" aria-hidden="true" />
+    <div class="card-body">
+      <p class="hint">{{ v.certifications.length }} entries</p>
+    </div>
+  </section>
+
+  <section class="card card--divided">
+    <div class="card-head">
       <h3>Skills</h3>
       <button app-button type="button" variant="ghost" size="sm" (click)="dialog.set('skills')">Edit</button>
     </div>
@@ -173,6 +184,7 @@
   @case ('summary') {
     <app-modal title="Edit summary" (closed)="dialog.set(null)">
       <textarea rows="8" aria-label="Summary" [ngModel]="vs.vault().summary" (ngModelChange)="setSummary($event)"></textarea>
+      <button app-button type="button" variant="primary" modal-footer (click)="dialog.set(null)">Save</button>
     </app-modal>
   }
 
@@ -201,7 +213,10 @@
           </div>
         </fieldset>
       }
-      <button app-button type="button" variant="primary" (click)="vs.addExperience()">+ Add role</button>
+      <div class="row wrap">
+        <button app-button type="button" variant="secondary" (click)="vs.addExperience()">+ Add role</button>
+      </div>
+      <button app-button type="button" variant="primary" modal-footer (click)="dialog.set(null)">Save</button>
     </app-modal>
   }
 
@@ -216,15 +231,37 @@
           <button app-button type="button" variant="danger" size="sm" (click)="vs.removeEducation(ed.id)">Delete</button>
         </fieldset>
       }
-      <button app-button type="button" variant="primary" (click)="vs.addEducation()">+ Add education</button>
+      <div class="row wrap">
+        <button app-button type="button" variant="secondary" (click)="vs.addEducation()">+ Add education</button>
+      </div>
+      <button app-button type="button" variant="primary" modal-footer (click)="dialog.set(null)">Save</button>
+    </app-modal>
+  }
+
+  @case ('certifications') {
+    <app-modal title="Edit certifications" (closed)="dialog.set(null)">
+      @for (cert of vs.vault().certifications; track cert.id) {
+        <fieldset class="role">
+          <legend>{{ cert.id }}</legend>
+          <label>Certification <input type="text" placeholder="e.g. AWS Certified Solutions Architect" [(ngModel)]="cert.name" (ngModelChange)="vs.touch()" /></label>
+          <label>Issuer <input type="text" placeholder="e.g. Amazon Web Services" [(ngModel)]="cert.issuer" (ngModelChange)="vs.touch()" /></label>
+          <label>Year <input type="text" placeholder="e.g. 2024" [(ngModel)]="cert.year" (ngModelChange)="vs.touch()" /></label>
+          <button app-button type="button" variant="danger" size="sm" (click)="vs.removeCertification(cert.id)">Delete</button>
+        </fieldset>
+      }
+      <div class="row wrap">
+        <button app-button type="button" variant="secondary" (click)="vs.addCertification()">+ Add certification</button>
+      </div>
+      <button app-button type="button" variant="primary" modal-footer (click)="dialog.set(null)">Save</button>
     </app-modal>
   }
 
   @case ('skills') {
     <app-modal title="Edit skills" (closed)="dialog.set(null)">
       <label>Comma separated
-        <textarea rows="6" [ngModel]="vs.vault().skills.join(', ')" (change)="setSkills($any($event.target).value)"></textarea>
+        <textarea #skillsInput rows="6" [ngModel]="vs.vault().skills.join(', ')" (change)="setSkills($any($event.target).value)"></textarea>
       </label>
+      <button app-button type="button" variant="primary" modal-footer (click)="setSkills(skillsInput.value); dialog.set(null)">Save</button>
     </app-modal>
   }
 }

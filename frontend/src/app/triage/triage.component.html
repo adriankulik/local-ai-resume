@@ -20,7 +20,6 @@
   @if (!matches().length && !manualMode()) {
     <section class="card companion-hero" aria-label="Target job description">
       <div class="companion-hero__header">
-        <span class="companion-badge">Companion</span>
         <h2 class="companion-title">Tailor for this job</h2>
         <p class="companion-desc">
           Navigate to any job listing in your browser and click below to match keywords and tailor your resume on-device.
@@ -176,13 +175,29 @@
       <section class="card card--divided" aria-label="ATS keyword match">
         <div class="card-head">
           <h3>Keywords &amp; Bullets</h3>
+          @if (matchedCount() < matches().length) {
+            <button
+              app-button
+              type="button"
+              variant="secondary"
+              size="sm"
+              [iconLeading]="sparklesIcon"
+              [disabled]="!ai.isAvailable || enhancing()"
+              [loading]="enhancing()"
+              [loadingMessages]="enhancingMessages"
+              (click)="enhanceMissingKeywords()"
+              title="Use AI to enhance your resume with missing ATS keywords"
+            >
+              Enhance with AI
+            </button>
+          }
         </div>
         <hr class="divider" aria-hidden="true" />
         <div class="card-body">
           <ul class="match-list">
             @for (m of matches(); track m.keyword) {
-              <li class="match" [class.ok]="m.bullet" [class.miss]="!m.bullet && !m.inSkills">
-                <span class="chip" [class.ok]="m.bullet || m.inSkills" [class.miss]="!m.bullet && !m.inSkills">{{ m.keyword }}</span>
+              <li class="match" [class.ok]="m.bullet" [class.miss]="!m.bullet && !m.inSkills && !m.inCerts">
+                <span class="chip" [class.ok]="m.bullet || m.inSkills || m.inCerts" [class.miss]="!m.bullet && !m.inSkills && !m.inCerts">{{ m.keyword }}</span>
                 @if (m.bullet; as b) {
                   <span class="match__bullet">
                     {{ b.text }}
@@ -190,6 +205,8 @@
                   </span>
                 } @else if (m.inSkills) {
                   <span class="match__bullet muted">Covered in skills only &mdash; no matching bullet.</span>
+                } @else if (m.inCerts) {
+                  <span class="match__bullet muted">Covered in certifications &mdash; no matching bullet.</span>
                 } @else {
                   <span class="match__bullet muted">Not found in your vault.</span>
                 }

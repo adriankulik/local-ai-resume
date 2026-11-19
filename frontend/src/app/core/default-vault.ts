@@ -47,6 +47,7 @@ const DEFAULT_VAULT: MasterVault = {
       year: '2016 - 2020',
     },
   ],
+  certifications: [],
   skills: ['TypeScript', 'React', 'Node.js', 'GraphQL', 'Docker', 'Accessibility', 'CI/CD'],
   settings: {
     theme: 'modern-slate',
