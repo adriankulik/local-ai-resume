@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   LucideEye,
-  LucideFileDown,
+  LucidePlus,
   LucideRotateCcw,
   LucideSparkles,
   LucideZap,
@@ -14,6 +14,7 @@ import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
 import { extractKeywords, normalize, textHasKeyword } from '../core/keyword-matcher';
+import { parseMarkdownLinks } from '../core/rich-text';
 
 export interface KeywordMatch {
   keyword: string;
@@ -39,11 +40,12 @@ export class TriageComponent {
   readonly ai = inject(AiService);
   readonly ext = inject(ExtensionService);
   readonly layout = inject(LayoutService);
-  readonly exportIcon = LucideFileDown.icon;
   readonly previewIcon = LucideEye.icon;
+  readonly plusIcon = LucidePlus.icon;
   readonly zapIcon = LucideZap.icon;
   readonly sparklesIcon = LucideSparkles.icon;
   readonly resetIcon = LucideRotateCcw.icon;
+  readonly bulletSegments = parseMarkdownLinks;
 
   readonly triageOpen = signal(true);
   readonly jd = signal('');
@@ -56,6 +58,7 @@ export class TriageComponent {
   readonly error = signal('');
   readonly showManualInput = signal(false);
   readonly manualMode = signal(false);
+  readonly aiAddedSkills = signal<string[]>([]);
 
   readonly tailoringMessages = [
     'Reading job description…',
@@ -83,13 +86,6 @@ export class TriageComponent {
     'Almost done…',
   ];
 
-  readonly enhancingMessages = [
-    'Identifying uncovered ATS keywords…',
-    'Enhancing summary and skills…',
-    'Drafting targeted resume bullets…',
-    'Polishing ATS coverage…',
-  ];
-
   get bulletCount(): number {
     return this.vs.vault().experience.reduce((sum, e) => sum + e.bullets.length, 0);
   }
@@ -103,13 +99,6 @@ export class TriageComponent {
     this.layout.setActiveTab('preview');
   }
 
-  exportPdf(): void {
-    this.layout.markStepCompleted('triage');
-    this.layout.markStepCompleted('preview');
-    this.layout.setActiveTab('preview');
-    this.ext.exportPdf(this.vs.vault().contact.fullName);
-  }
-
   resetJob(): void {
     this.jd.set('');
     this.keywords.set([]);
@@ -117,6 +106,7 @@ export class TriageComponent {
     this.manualMode.set(false);
     this.error.set('');
     this.proposals.set({});
+    this.aiAddedSkills.set([]);
     this.vs.tailoredSummary.set(null);
     this.vs.tailoredSkills.set(null);
     this.vs.selectAll();
@@ -237,6 +227,7 @@ export class TriageComponent {
         }
         this.jd.set(finalJobText);
         this.showManualInput.set(true);
+        this.layout.markStepCompleted('triage');
       } else {
         this.error.set('Could not extract job description from active tab. Highlight the text or paste directly.');
       }
@@ -258,7 +249,32 @@ export class TriageComponent {
   }
 
   setTailoredSkills(value: string): void {
-    this.vs.tailoredSkills.set(value.split(',').map((s) => s.trim()).filter(Boolean));
+    const next = value.split(',').map((s) => s.trim()).filter(Boolean);
+    this.vs.tailoredSkills.set(next);
+    const present = new Set(next.map((s) => normalize(s)));
+    this.aiAddedSkills.update((list) => list.filter((s) => present.has(normalize(s))));
+  }
+
+  removeAiAddedSkill(skill: string): void {
+    const target = normalize(skill);
+    this.aiAddedSkills.update((list) => list.filter((s) => normalize(s) !== target));
+    const current = this.vs.tailoredSkills() ?? this.vs.vault().skills;
+    this.vs.tailoredSkills.set(current.filter((s) => normalize(s) !== target));
+  }
+
+  addMissingKeywordToSkills(keyword: string): void {
+    const clean = keyword.trim();
+    if (!clean) return;
+    const norm = normalize(clean);
+    this.vs.update((v) => {
+      if (!v.skills.some((s) => normalize(s) === norm)) {
+        v.skills.push(clean);
+      }
+    });
+    const tailored = this.vs.tailoredSkills();
+    if (tailored && !tailored.some((s) => normalize(s) === norm)) {
+      this.vs.tailoredSkills.set([...tailored, clean]);
+    }
   }
 
   onToggle(id: string, ev: Event): void {
@@ -318,14 +334,22 @@ export class TriageComponent {
         const current = this.vs.tailoredSkills() ?? vault.skills;
         const seen = new Set(current.map((s) => normalize(s)));
         const merged = [...current];
+        const newlyAdded: string[] = [];
         for (const sk of res.suggestedSkills) {
           const norm = normalize(sk);
           if (norm && !seen.has(norm)) {
             seen.add(norm);
             merged.push(sk);
+            newlyAdded.push(sk);
           }
         }
         this.vs.tailoredSkills.set(merged);
+        if (newlyAdded.length) {
+          this.aiAddedSkills.update((prev) => {
+            const prevSeen = new Set(prev.map((s) => normalize(s)));
+            return [...prev, ...newlyAdded.filter((s) => !prevSeen.has(normalize(s)))];
+          });
+        }
       }
       const targetExp = vault.experience[0];
       if (targetExp && res.proposedBullets.length) {

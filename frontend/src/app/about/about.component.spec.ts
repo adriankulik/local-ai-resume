@@ -21,18 +21,18 @@ describe('AboutComponent', () => {
 
   it('renders app description and title', () => {
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Local AI Resume');
+    expect(el.textContent).toContain('On-device AI Resume');
     expect(el.textContent).toContain('Client-Side Privacy');
     expect(el.textContent).toContain('On-Device AI Engine');
   });
 
-  it('contains links to author GitHub profile and local-ai-resume repository', () => {
+  it('contains links to author GitHub profile and on-device-ai-resume repository', () => {
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
     const hrefs = Array.from(links).map((a) => a.getAttribute('href'));
 
     expect(hrefs).toContain('https://github.com/adriankulik');
-    expect(hrefs).toContain('https://github.com/adriankulik/local-ai-resume');
+    expect(hrefs).toContain('https://github.com/adriankulik/on-device-ai-resume');
 
     // Both external links must open in new tab securely
     links.forEach((a) => {

@@ -152,6 +152,26 @@ describe('AiService', () => {
       const bullets = await service.proposeBullets(mockVault, 'exp_1', 'JD', ['Docker']);
       expect(bullets).toEqual(['Containerized microservices with Docker reducing build times by 40%.']);
     });
+
+    it('retries once when model returns non-JSON prose on first attempt', async () => {
+      let calls = 0;
+      spyOn(service, 'resolveActiveProvider').and.resolveTo({
+        id: 'local-openai',
+        name: 'Mock Provider',
+        isAvailable: async () => true,
+        generateJson: async <T>() => {
+          calls++;
+          if (calls === 1) {
+            throw new Error('Failed to parse valid JSON from model response: "## Proposed Bullets: 1. ..."');
+          }
+          return { proposedBullets: ['Built Docker CI pipeline.'] } as unknown as T;
+        },
+      });
+
+      const bullets = await service.proposeBullets(mockVault, 'exp_1', 'JD', ['Docker']);
+      expect(calls).toBe(2);
+      expect(bullets).toEqual(['Built Docker CI pipeline.']);
+    });
   });
 
   describe('parseResume', () => {

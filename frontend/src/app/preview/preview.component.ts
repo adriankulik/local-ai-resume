@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideCheck, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
+import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
 import { DropdownComponent } from '../dropdown/dropdown.component';
 import { ToggleComponent } from '../toggle/toggle.component';
@@ -9,6 +9,7 @@ import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
 import { Experience, THEMES, ThemeName, VaultSettings, nextId } from '../core/vault.model';
+import { parseMarkdownLinks } from '../core/rich-text';
 
 const MM_PX = 96 / 25.4;
 const A4_W = 210 * MM_PX;
@@ -17,18 +18,21 @@ const A4_H = 297 * MM_PX;
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ButtonComponent],
+  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ButtonComponent, LucideDynamicIcon],
   templateUrl: './preview.component.html',
 })
 export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly vs = inject(VaultService);
   readonly themes = THEMES;
+  readonly bulletSegments = parseMarkdownLinks;
   readonly exportIcon = LucideFileDown.icon;
   readonly editIcon = LucidePencil.icon;
   readonly plusIcon = LucidePlus.icon;
   readonly trashIcon = LucideTrash2.icon;
   readonly checkIcon = LucideCheck.icon;
   readonly closeIcon = LucideX.icon;
+  readonly upIcon = LucideArrowUp.icon;
+  readonly downIcon = LucideArrowDown.icon;
 
   private readonly stage = viewChild.required<ElementRef<HTMLElement>>('stage');
   private readonly sheet = viewChild.required<ElementRef<HTMLElement>>('sheet');
@@ -59,23 +63,37 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
   readonly skills = computed(() => this.vs.tailoredSkills() ?? this.vs.vault().skills);
 
-  /** Contact details split into primary communication info and web links */
-  readonly primaryContact = computed(() => {
-    const c = this.vs.vault().contact;
-    return [c.email, c.phone, c.location].map((s) => s?.trim()).filter(Boolean);
+  /** Contact details split into email/phone/location and web links */
+  readonly emailLink = computed(() => {
+    const email = (this.vs.vault().contact.email || '').trim();
+    return email ? { label: email, url: `mailto:${email}` } : null;
   });
 
-  readonly linkedinLink = computed(() => {
-    const raw = (this.vs.vault().contact.linkedin || '').trim();
-    if (!raw) return null;
-    return {
-      url: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
-      display: raw.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''),
-    };
+  readonly phoneLink = computed(() => {
+    const phone = (this.vs.vault().contact.phone || '').trim();
+    if (!phone) return null;
+    const tel = phone.replace(/[\s()-]/g, '');
+    return { label: phone, url: `tel:${tel || phone}` };
   });
+
+  readonly locationText = computed(() => (this.vs.vault().contact.location || '').trim());
+
+  readonly linkedinLink = computed(() =>
+    formatProfileLink(this.vs.vault().contact.linkedin, 'linkedin.com', '/in/'),
+  );
+
+  readonly githubLink = computed(() =>
+    formatProfileLink(this.vs.vault().contact.github, 'github.com', '/'),
+  );
 
   readonly contactLinks = computed(() => {
-    const liDisplay = this.linkedinLink()?.display.toLowerCase();
+    const li = this.linkedinLink();
+    const gh = this.githubLink();
+    const exclude = new Set(
+      [li ? `linkedin.com${li.display}` : '', gh ? `github.com${gh.display}` : '']
+        .filter(Boolean)
+        .map((s) => s.toLowerCase()),
+    );
     return (this.vs.vault().contact.links || [])
       .map((l) => l.trim())
       .filter(Boolean)
@@ -83,7 +101,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
         url: /^https?:\/\//i.test(l) ? l : `https://${l}`,
         display: l.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''),
       }))
-      .filter((l) => !liDisplay || l.display.toLowerCase() !== liDisplay);
+      .filter((l) => !exclude.has(l.display.toLowerCase()));
   });
 
   readonly rodoText = computed(() => {
@@ -191,6 +209,79 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
       return;
     }
     this.vs.toggleBullet(bulletId, false);
+  }
+
+  moveResumeExperience(expId: string, delta: -1 | 1): void {
+    const visible = this.vs.selectedExperience();
+    const visIdx = visible.findIndex((e) => e.id === expId);
+    const targetVisIdx = visIdx + delta;
+    if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= visible.length) return;
+    const otherId = visible[targetVisIdx].id;
+
+    const vaultExps = this.vs.vault().experience;
+    const i1 = vaultExps.findIndex((e) => e.id === expId);
+    const i2 = vaultExps.findIndex((e) => e.id === otherId);
+    if (i1 !== -1 && i2 !== -1) {
+      this.vs.update((v) => {
+        [v.experience[i1], v.experience[i2]] = [v.experience[i2], v.experience[i1]];
+      });
+      return;
+    }
+
+    const r1 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === expId);
+    const r2 = this.vs.resumeOnlyExperience().findIndex((e) => e.id === otherId);
+    if (r1 !== -1 && r2 !== -1) {
+      this.vs.resumeOnlyExperience.update((list) => {
+        const copy = [...list];
+        [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
+        return copy;
+      });
+    }
+  }
+
+  moveResumeBullet(expId: string, bulletId: string, delta: -1 | 1): void {
+    const role = this.vs.selectedExperience().find((e) => e.id === expId);
+    if (!role) return;
+    const visIdx = role.bullets.findIndex((b) => b.id === bulletId);
+    const targetVisIdx = visIdx + delta;
+    if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= role.bullets.length) return;
+    const otherId = role.bullets[targetVisIdx].id;
+
+    const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
+    if (vaultRole) {
+      const i1 = vaultRole.bullets.findIndex((b) => b.id === bulletId);
+      const i2 = vaultRole.bullets.findIndex((b) => b.id === otherId);
+      if (i1 !== -1 && i2 !== -1) {
+        this.vs.update((v) => {
+          const r = v.experience.find((e) => e.id === expId);
+          if (r) [r.bullets[i1], r.bullets[i2]] = [r.bullets[i2], r.bullets[i1]];
+        });
+        return;
+      }
+      const extra = this.vs.resumeOnlyBullets()[expId] ?? [];
+      const e1 = extra.findIndex((b) => b.id === bulletId);
+      const e2 = extra.findIndex((b) => b.id === otherId);
+      if (e1 !== -1 && e2 !== -1) {
+        this.vs.resumeOnlyBullets.update((map) => {
+          const copy = [...(map[expId] ?? [])];
+          [copy[e1], copy[e2]] = [copy[e2], copy[e1]];
+          return { ...map, [expId]: copy };
+        });
+      }
+      return;
+    }
+
+    this.vs.resumeOnlyExperience.update((list) =>
+      list.map((r) => {
+        if (r.id !== expId) return r;
+        const r1 = r.bullets.findIndex((b) => b.id === bulletId);
+        const r2 = r.bullets.findIndex((b) => b.id === otherId);
+        if (r1 === -1 || r2 === -1) return r;
+        const copy = [...r.bullets];
+        [copy[r1], copy[r2]] = [copy[r2], copy[r1]];
+        return { ...r, bullets: copy };
+      }),
+    );
   }
 
   updateNewRoleField<K extends 'role' | 'company' | 'startDate' | 'endDate' | 'bullet'>(key: K, value: string): void {
@@ -421,4 +512,23 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
     this.layout.markStepCompleted('preview');
     this.ext.exportPdf(this.vs.vault().contact.fullName);
   }
+}
+
+function formatProfileLink(
+  rawValue: string | undefined,
+  domain: string,
+  defaultPrefix: string,
+): { url: string; display: string } | null {
+  const raw = (rawValue || '').trim();
+  if (!raw) return null;
+  const escaped = domain.replace('.', '\\.');
+  const hostRe = new RegExp(`^(?:https?:\\/\\/)?(?:www\\.)?${escaped}\\/?`, 'i');
+  let path = raw.replace(hostRe, '').replace(/^\/+|\/+$/g, '');
+  if (!path) return null;
+  const prefixNoSlash = defaultPrefix.replace(/^\/+|\/+$/g, '');
+  if (prefixNoSlash && !path.toLowerCase().startsWith(`${prefixNoSlash.toLowerCase()}/`)) {
+    path = `${prefixNoSlash}/${path}`;
+  }
+  const url = /^https?:\/\//i.test(raw) ? raw : `https://${domain}/${path}`;
+  return { url, display: `/${path}` };
 }

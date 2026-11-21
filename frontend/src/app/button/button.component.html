@@ -15,7 +15,7 @@
 }
 @if (!iconOnly) {
   <span class="app-button__label">
-    @if (loading) {
+    @if (loading && !preserveLabelOnLoading) {
       {{ currentLoadingMessage() }}
     } @else {
       <ng-content></ng-content>

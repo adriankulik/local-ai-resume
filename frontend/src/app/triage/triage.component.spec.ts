@@ -46,6 +46,16 @@ describe('TriageComponent', () => {
   });
 
   it('enters manual mode when continueManually is called without JD', () => {
+    vaultService.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022-01',
+        endDate: 'Present',
+        bullets: [{ id: 'b_101', text: 'Shipped features' }],
+      });
+    });
     component.continueManually();
     expect(component.manualMode()).toBeTrue();
     expect(vaultService.selectedBulletIds().size).toBeGreaterThan(0);
@@ -64,14 +74,13 @@ describe('TriageComponent', () => {
     expect(vaultService.vault().summary).toBe(originalSummary);
   });
 
-  it('switches layout tab to preview and invokes ext.exportPdf when exportPdf is clicked', () => {
+  it('switches layout tab to preview and marks triage completed when viewPreview is clicked', () => {
     const layoutSpy = spyOn(layoutService, 'setActiveTab');
-    const extSpy = spyOn(extensionService, 'exportPdf');
 
-    component.exportPdf();
+    component.viewPreview();
 
     expect(layoutSpy).toHaveBeenCalledWith('preview');
-    expect(extSpy).toHaveBeenCalledWith(vaultService.vault().contact.fullName);
+    expect(layoutService.isStepCompleted('triage')).toBeTrue();
   });
 
   it('switches layout tab to vault when editProfile is called', () => {
@@ -140,7 +149,10 @@ describe('TriageComponent', () => {
 
   it('shows Enhance with AI button in Keywords & Bullets only when ATS match is below 100%', async () => {
     await vaultService.ready;
-    const firstSkill = vaultService.vault().skills[0] || 'TypeScript';
+    vaultService.update((v) => {
+      v.skills = ['TypeScript'];
+    });
+    const firstSkill = vaultService.vault().skills[0];
     component.keywords.set([firstSkill, 'NonExistentQuantumSkillXYZ']);
     fixture.detectChanges();
 
@@ -157,7 +169,18 @@ describe('TriageComponent', () => {
 
   it('enhances summary, skills, and bullet proposals when enhanceMissingKeywords is called', async () => {
     await vaultService.ready;
-    const firstSkill = vaultService.vault().skills[0] || 'TypeScript';
+    vaultService.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022-01',
+        endDate: 'Present',
+        bullets: [{ id: 'b_101', text: 'Built TypeScript services' }],
+      });
+      v.skills = ['TypeScript'];
+    });
+    const firstSkill = vaultService.vault().skills[0];
     component.jd.set('Looking for Kubernetes and GraphQL experience');
     component.keywords.set([firstSkill, 'Kubernetes', 'GraphQL']);
     fixture.detectChanges();
@@ -175,6 +198,11 @@ describe('TriageComponent', () => {
     expect(vaultService.tailoredSummary()).toBe('Enhanced summary with Kubernetes and GraphQL.');
     expect(vaultService.tailoredSkills()).toContain('Kubernetes');
     expect(vaultService.tailoredSkills()).toContain('GraphQL');
+    expect(component.aiAddedSkills()).toEqual(['Kubernetes', 'GraphQL']);
+    const addedBanner = fixture.nativeElement.querySelector('.ai-added-skills');
+    expect(addedBanner?.textContent).toContain('Added by AI:');
+    expect(addedBanner?.textContent).toContain('Kubernetes');
+    expect(addedBanner?.textContent).toContain('GraphQL');
     const firstExpId = vaultService.vault().experience[0].id;
     expect(component.proposals()[firstExpId]).toEqual(['Deployed microservices on Kubernetes with GraphQL APIs.']);
     expect(component.matchedCount()).toBe(component.matches().length);
@@ -196,5 +224,48 @@ describe('TriageComponent', () => {
     expect(component.matches()[0].inCerts).toBeTrue();
     expect(component.matchedCount()).toBe(1);
     expect(component.uncoveredKeywords()).toEqual([]);
+  });
+
+  it('marks triage step completed after extracting job description from active tab', async () => {
+    spyOn(extensionService, 'extractFromActiveTab').and.resolveTo({
+      text: 'Senior Angular Developer with TypeScript experience',
+      isUserSelection: true,
+    });
+
+    await component.extractFromActiveTab();
+
+    expect(component.jd()).toBe('Senior Angular Developer with TypeScript experience');
+    expect(layoutService.isStepCompleted('triage')).toBeTrue();
+  });
+
+  it('keeps Enhance with AI label and shows spinner while enhancing', async () => {
+    await vaultService.ready;
+    vaultService.update((v) => {
+      v.skills = ['TypeScript'];
+    });
+    component.keywords.set(['TypeScript', 'Rust']);
+    component.enhancing.set(true);
+    fixture.detectChanges();
+
+    const btn = fixture.nativeElement.querySelector('section[aria-label="ATS keyword match"] .card-head button') as HTMLButtonElement | null;
+    expect(btn).toBeTruthy();
+    expect(btn?.textContent?.trim()).toBe('Enhance with AI');
+    expect(btn?.querySelector('.app-button__icon--spin')).toBeTruthy();
+  });
+
+  it('adds a missing keyword to vault and tailored skills when Add to skills is clicked', async () => {
+    await vaultService.ready;
+    vaultService.tailoredSkills.set(['TypeScript']);
+    component.keywords.set(['TypeScript', 'agents']);
+    fixture.detectChanges();
+
+    const addBtn = fixture.nativeElement.querySelector('button[aria-label="Add agents to skills"]') as HTMLButtonElement | null;
+    expect(addBtn).toBeTruthy();
+    addBtn?.click();
+    fixture.detectChanges();
+
+    expect(vaultService.vault().skills).toContain('agents');
+    expect(vaultService.tailoredSkills()).toContain('agents');
+    expect(component.matches().find((m) => m.keyword === 'agents')?.inSkills).toBeTrue();
   });
 });

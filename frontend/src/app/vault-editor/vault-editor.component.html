@@ -52,6 +52,7 @@
       <label>Phone <input type="tel" [(ngModel)]="v.contact.phone" (ngModelChange)="vs.touch()" /></label>
       <label>Location <input type="text" [(ngModel)]="v.contact.location" (ngModelChange)="vs.touch()" /></label>
       <label>LinkedIn <input type="text" placeholder="linkedin.com/in/username" [(ngModel)]="v.contact.linkedin" (ngModelChange)="vs.touch()" /></label>
+      <label>GitHub <input type="text" placeholder="github.com/username" [(ngModel)]="v.contact.github" (ngModelChange)="vs.touch()" /></label>
       <label>Links (comma separated)
         <input type="text" [ngModel]="v.contact.links.join(', ')" (change)="setLinks($any($event.target).value)" />
       </label>
@@ -86,7 +87,7 @@
     </div>
     <hr class="divider" aria-hidden="true" />
     <div class="card-body">
-      <p class="hint">{{ v.experience.length }} roles · {{ bulletCount }} bullets</p>
+      <p class="hint">{{ v.experience.length }} roles · {{ bulletCount }} bullet points</p>
     </div>
   </section>
 
@@ -190,7 +191,7 @@
 
   @case ('experience') {
     <app-modal title="Edit experience" (closed)="dialog.set(null)">
-      @for (e of vs.vault().experience; track e.id) {
+      @for (e of vs.vault().experience; track e.id; let ei = $index, eFirst = $first, eLast = $last) {
         <fieldset class="role">
           <legend>{{ e.id }}</legend>
           <label>Role <input type="text" [(ngModel)]="e.role" (ngModelChange)="vs.touch()" /></label>
@@ -200,15 +201,21 @@
             <label>End <input type="text" placeholder="YYYY-MM or Present" [(ngModel)]="e.endDate" (ngModelChange)="vs.touch()" /></label>
           </div>
           <ul class="bullet-edit">
-            @for (b of e.bullets; track b.id) {
+            @for (b of e.bullets; track b.id; let bi = $index, bFirst = $first, bLast = $last) {
               <li>
                 <textarea rows="2" [attr.aria-label]="'Bullet ' + b.id" [(ngModel)]="b.text" (ngModelChange)="vs.touch()"></textarea>
-                <button app-button type="button" variant="close" size="sm" [iconOnly]="true" [iconLeading]="removeIcon" [attr.aria-label]="'Delete bullet ' + b.id" (click)="vs.removeBullet(e.id, b.id)"></button>
+                <div class="row">
+                  <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="upIcon" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="vs.moveBullet(e.id, bi, -1)"></button>
+                  <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="downIcon" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="vs.moveBullet(e.id, bi, 1)"></button>
+                  <button app-button type="button" variant="close" size="sm" [iconOnly]="true" [iconLeading]="removeIcon" [attr.aria-label]="'Delete bullet ' + b.id" (click)="vs.removeBullet(e.id, b.id)"></button>
+                </div>
               </li>
             }
           </ul>
-          <div class="row">
-            <button app-button type="button" variant="secondary" size="sm" (click)="vs.addBullet(e.id)">+ Bullet</button>
+          <div class="row wrap">
+            <button app-button type="button" variant="secondary" size="sm" (click)="vs.addBullet(e.id)">+ Bullet point</button>
+            <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="upIcon" [disabled]="eFirst" [attr.aria-label]="'Move role ' + e.id + ' up'" (click)="vs.moveExperience(ei, -1)"></button>
+            <button app-button type="button" variant="ghost" size="sm" [iconOnly]="true" [iconLeading]="downIcon" [disabled]="eLast" [attr.aria-label]="'Move role ' + e.id + ' down'" (click)="vs.moveExperience(ei, 1)"></button>
             <button app-button type="button" variant="danger" size="sm" (click)="vs.removeExperience(e.id)">Delete role</button>
           </div>
         </fieldset>
@@ -245,7 +252,7 @@
           <legend>{{ cert.id }}</legend>
           <label>Certification <input type="text" placeholder="e.g. AWS Certified Solutions Architect" [(ngModel)]="cert.name" (ngModelChange)="vs.touch()" /></label>
           <label>Issuer <input type="text" placeholder="e.g. Amazon Web Services" [(ngModel)]="cert.issuer" (ngModelChange)="vs.touch()" /></label>
-          <label>Year <input type="text" placeholder="e.g. 2024" [(ngModel)]="cert.year" (ngModelChange)="vs.touch()" /></label>
+          <label>Year (optional) <input type="text" placeholder="e.g. 2024" [(ngModel)]="cert.year" (ngModelChange)="vs.touch()" /></label>
           <button app-button type="button" variant="danger" size="sm" (click)="vs.removeCertification(cert.id)">Delete</button>
         </fieldset>
       }

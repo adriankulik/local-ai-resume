@@ -26,7 +26,7 @@
 
     @if (overflow()) {
       <p class="msg error" role="alert">
-        Content exceeds one A4 page. Deselect some bullets{{ s().strictOnePage ? '' : ' or enable the 1-page enforcer' }}.
+        Content exceeds one A4 page. Deselect some bullet points{{ s().strictOnePage ? '' : ' or enable the 1-page enforcer' }}.
       </p>
     }
 
@@ -50,6 +50,12 @@
           [description]="vs.vault().contact.photoDataUrl ? 'Profile picture in the header' : 'Add a photo in the vault first'"
           [disabled]="!vs.vault().contact.photoDataUrl"
           [checked]="s().showPhoto" (checkedChange)="set('showPhoto', $event)" />
+      </div>
+
+      <div class="setting">
+        <app-toggle label="Show certification dates"
+          description="Display dates on certification entries"
+          [checked]="s().showCertificationDates" (checkedChange)="set('showCertificationDates', $event)" />
       </div>
 
       <div class="setting">
@@ -101,10 +107,16 @@
           <div class="r-id">
             <h1>{{ v.contact.fullName || 'Your Name' }}</h1>
             <div class="r-contact">
-              @if (primaryContact().length || linkedinLink() || contactLinks().length) {
+              @if (emailLink() || phoneLink() || locationText() || linkedinLink() || githubLink() || contactLinks().length) {
                 <div class="r-contact__row">
-                  @for (c of primaryContact(); track $index) {
-                    <span class="r-contact__item">{{ c }}</span>
+                  @if (emailLink(); as em) {
+                    <a class="r-contact__item r-contact__link r-contact__link--email" [href]="em.url">{{ em.label }}</a>
+                  }
+                  @if (phoneLink(); as ph) {
+                    <a class="r-contact__item r-contact__link r-contact__link--phone" [href]="ph.url">{{ ph.label }}</a>
+                  }
+                  @if (locationText(); as loc) {
+                    <span class="r-contact__item">{{ loc }}</span>
                   }
                   @if (linkedinLink(); as li) {
                     <a class="r-contact__item r-contact__link r-contact__link--linkedin" [href]="li.url" target="_blank" rel="noopener noreferrer">
@@ -112,6 +124,14 @@
                         <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
                       </svg>
                       <span>{{ li.display }}</span>
+                    </a>
+                  }
+                  @if (githubLink(); as gh) {
+                    <a class="r-contact__item r-contact__link r-contact__link--github" [href]="gh.url" target="_blank" rel="noopener noreferrer">
+                      <svg class="r-contact__icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                      </svg>
+                      <span>{{ gh.display }}</span>
                     </a>
                   }
                   @for (l of contactLinks(); track $index) {
@@ -177,14 +197,14 @@
                   <input type="text" placeholder="Start (e.g. 2022-03)" [ngModel]="newRole().startDate" (ngModelChange)="updateNewRoleField('startDate', $event)" />
                   <input type="text" placeholder="End (e.g. Present)" [ngModel]="newRole().endDate" (ngModelChange)="updateNewRoleField('endDate', $event)" />
                 </div>
-                <input type="text" placeholder="Initial achievement bullet (optional)" [ngModel]="newRole().bullet" (ngModelChange)="updateNewRoleField('bullet', $event)" />
+                <input type="text" placeholder="Initial bullet point (optional)" [ngModel]="newRole().bullet" (ngModelChange)="updateNewRoleField('bullet', $event)" />
                 <div class="r-inline-form__actions">
                   <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeExperience()">Add role</button>
                   <button type="button" class="r-edit-btn" (click)="addingRole.set(false)">Cancel</button>
                 </div>
               </div>
             }
-            @for (e of vs.selectedExperience(); track e.id) {
+            @for (e of vs.selectedExperience(); track e.id; let eFirst = $first, eLast = $last) {
               <div class="r-role">
                 <h3>
                   <span class="r-entity">
@@ -201,6 +221,12 @@
                   <span class="r-dates">
                     {{ fmt(e.startDate) }}{{ e.startDate && e.endDate ? ' – ' : '' }}{{ fmt(e.endDate) }}
                     @if (editMode()) {
+                      <button type="button" class="r-edit-btn no-print" [disabled]="eFirst" [attr.aria-label]="'Move role ' + (e.role || e.id) + ' up'" (click)="moveResumeExperience(e.id, -1)">
+                        <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
+                      </button>
+                      <button type="button" class="r-edit-btn no-print" [disabled]="eLast" [attr.aria-label]="'Move role ' + (e.role || e.id) + ' down'" (click)="moveResumeExperience(e.id, 1)">
+                        <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
+                      </button>
                       <button type="button" class="r-edit-btn r-edit-btn--danger no-print" (click)="removeResumeExperience(e)">
                         Delete role
                       </button>
@@ -208,13 +234,41 @@
                   </span>
                 </h3>
                 <ul>
-                  @for (b of e.bullets; track b.id) {
+                  @for (b of e.bullets; track b.id; let bFirst = $first, bLast = $last) {
                     <li class="r-bullet-item">
-                      <span>{{ b.text }}</span>
+                      <span>
+                        @for (seg of bulletSegments(b.text); track $index) {
+                          @switch (seg.type) {
+                            @case ('link') {
+                              <a class="r-bullet-link" [href]="seg.url" target="_blank" rel="noopener noreferrer">{{ seg.label }}</a>
+                            }
+                            @case ('code') {
+                              <code class="r-bullet-code">{{ seg.text }}</code>
+                            }
+                            @case ('bold') {
+                              <strong>{{ seg.text }}</strong>
+                            }
+                            @case ('italic') {
+                              <em>{{ seg.text }}</em>
+                            }
+                            @default {
+                              {{ seg.text }}
+                            }
+                          }
+                        }
+                      </span>
                       @if (editMode()) {
-                        <button type="button" class="r-edit-btn r-edit-btn--danger no-print" aria-label="Delete bullet" (click)="removeResumeBullet(e.id, b.id)">
-                          ×
-                        </button>
+                        <span class="r-edit-actions no-print">
+                          <button type="button" class="r-edit-btn" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="moveResumeBullet(e.id, b.id, -1)">
+                            <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
+                          </button>
+                          <button type="button" class="r-edit-btn" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="moveResumeBullet(e.id, b.id, 1)">
+                            <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
+                          </button>
+                          <button type="button" class="r-edit-btn r-edit-btn--danger" aria-label="Delete bullet" (click)="removeResumeBullet(e.id, b.id)">
+                            ×
+                          </button>
+                        </span>
                       }
                     </li>
                   }
@@ -298,7 +352,7 @@
                 <div class="r-inline-form__grid">
                   <input type="text" placeholder="Certification name" [ngModel]="newCert().name" (ngModelChange)="updateNewCertField('name', $event)" />
                   <input type="text" placeholder="Issuer" [ngModel]="newCert().issuer" (ngModelChange)="updateNewCertField('issuer', $event)" />
-                  <input type="text" placeholder="Year (e.g. 2024)" [ngModel]="newCert().year" (ngModelChange)="updateNewCertField('year', $event)" />
+                  <input type="text" placeholder="Year (optional, e.g. 2024)" [ngModel]="newCert().year" (ngModelChange)="updateNewCertField('year', $event)" />
                 </div>
                 <div class="r-inline-form__actions">
                   <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="addResumeCertification()">Add certification</button>
@@ -316,7 +370,7 @@
                     @if (cert.issuer) {
                       <span class="r-cert-chip__meta">{{ cert.name ? '· ' : '' }}{{ cert.issuer }}</span>
                     }
-                    @if (cert.year) {
+                    @if (s().showCertificationDates && cert.year) {
                       <span class="r-cert-chip__meta">({{ cert.year }})</span>
                     }
                     @if (editMode()) {

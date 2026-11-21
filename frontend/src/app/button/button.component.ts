@@ -73,6 +73,9 @@ export class ButtonComponent implements OnChanges, OnDestroy {
   /** When true, displays spinner and cycles interactive loading messages. */
   @Input() loading = false;
 
+  /** When true, keeps the projected button label instead of replacing it with loading text. */
+  @Input() preserveLabelOnLoading = false;
+
   /** Static fallback text when loading and no message list is provided. */
   @Input() loadingText?: string;
 

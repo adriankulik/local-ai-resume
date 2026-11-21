@@ -5,7 +5,7 @@
         <span class="badge">Welcome</span>
         <h2 class="onboarding-title">Set up your Career Vault</h2>
         <p class="onboarding-desc">
-          Paste your existing resume, LinkedIn summary, or work history. We'll automatically organize your experience points, summary, and skills on-device.
+          Paste your existing resume, LinkedIn summary, work history, or an exported vault JSON. We'll automatically organize your experience points, summary, and skills on-device.
         </p>
       </div>
 
@@ -40,8 +40,9 @@
         </button>
 
         <div class="sub-actions">
-          <button app-button type="button" variant="ghost" size="sm" (click)="loadSample()">
-            Or load sample profile
+          <input #vaultImportInput type="file" accept="application/json,.json" hidden (change)="importVaultFile($event)" />
+          <button app-button type="button" variant="ghost" size="sm" (click)="triggerImport()">
+            Import exported vault (.json)
           </button>
         </div>
       </div>
@@ -89,6 +90,10 @@
           <label>
             LinkedIn
             <input type="text" placeholder="linkedin.com/in/username" [(ngModel)]="draft().contact.linkedin" />
+          </label>
+          <label>
+            GitHub
+            <input type="text" placeholder="github.com/username" [(ngModel)]="draft().contact.github" />
           </label>
         </div>
       </section>

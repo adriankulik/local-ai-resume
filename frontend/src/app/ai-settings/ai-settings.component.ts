@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { LucideDynamicIcon, LucideLock } from '@lucide/angular';
 import { AiService } from '../core/ai.service';
 import {
   AiConfig,
@@ -13,13 +14,14 @@ import { RadioCardComponent } from '../radio-card/radio-card.component';
 @Component({
   selector: 'app-ai-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, RadioCardComponent],
+  imports: [CommonModule, FormsModule, ButtonComponent, RadioCardComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ai-settings.component.html',
   styleUrl: './ai-settings.component.scss',
 })
 export class AiSettingsComponent {
   readonly ai = inject(AiService);
+  readonly lockIcon = LucideLock.icon;
 
   readonly presets = COMMON_LOCAL_PRESETS;
 

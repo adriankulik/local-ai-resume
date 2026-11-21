@@ -6,7 +6,7 @@ import { AiService } from '../core/ai.service';
 import { ButtonComponent } from '../button/button.component';
 import { ModalComponent } from '../modal/modal.component';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
-import { LucideArrowRight, LucideX } from '@lucide/angular';
+import { LucideArrowDown, LucideArrowRight, LucideArrowUp, LucideX } from '@lucide/angular';
 import { LayoutService } from '../core/layout.service';
 import { ExtensionService } from '../core/extension.service';
 
@@ -35,6 +35,8 @@ export class VaultEditorComponent {
   readonly layout = inject(LayoutService);
   readonly ext = inject(ExtensionService);
   readonly arrowRightIcon = LucideArrowRight.icon;
+  readonly upIcon = LucideArrowUp.icon;
+  readonly downIcon = LucideArrowDown.icon;
 
   readonly dialog = signal<EditorDialog | null>(null);
   readonly removeIcon = LucideX.icon;

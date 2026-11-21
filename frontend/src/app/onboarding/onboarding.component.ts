@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideSparkles, LucideCheck, LucideArrowLeft, LucideArrowRight, LucidePlus, LucideTrash2 } from '@lucide/angular';
@@ -6,8 +6,7 @@ import { ButtonComponent } from '../button/button.component';
 import { VaultService } from '../core/vault.service';
 import { AiService } from '../core/ai.service';
 import { LayoutService } from '../core/layout.service';
-import { defaultVault } from '../core/default-vault';
-import { MasterVault } from '../core/vault.model';
+import { MasterVault, emptyVault, normalizeVault } from '../core/vault.model';
 
 type OnboardingStep = 'paste' | 'review';
 
@@ -27,6 +26,7 @@ export class OnboardingComponent {
   readonly rawText = signal('');
   readonly parsing = signal(false);
   readonly error = signal('');
+  private readonly importInput = viewChild<ElementRef<HTMLInputElement>>('vaultImportInput');
 
   readonly parsingMessages = [
     'Parsing resume structure…',
@@ -50,8 +50,25 @@ export class OnboardingComponent {
   async parse(): Promise<void> {
     const text = this.rawText().trim();
     if (!text) {
-      this.error.set('Please paste your resume or work history text first.');
+      this.error.set('Please paste your resume, work history, or exported vault JSON first.');
       return;
+    }
+    if (text.startsWith('{')) {
+      try {
+        const parsedJson: unknown = JSON.parse(text);
+        if (
+          parsedJson &&
+          typeof parsedJson === 'object' &&
+          ('experience' in parsedJson || 'contact' in parsedJson || 'skills' in parsedJson)
+        ) {
+          this.draft.set(normalizeVault(parsedJson));
+          this.error.set('');
+          this.step.set('review');
+          return;
+        }
+      } catch {
+        // Not valid JSON — fall through to normal resume text parsing
+      }
     }
     this.parsing.set(true);
     this.error.set('');
@@ -61,22 +78,37 @@ export class OnboardingComponent {
       this.step.set('review');
     } catch (e) {
       console.warn(e);
-      this.error.set('Extraction failed. You can load sample profile or try pasting again.');
+      this.error.set('Extraction failed. Please try pasting your resume again.');
     } finally {
       this.parsing.set(false);
     }
   }
 
-  loadSample(): void {
-    this.draft.set(defaultVault());
-    this.step.set('review');
+  triggerImport(): void {
+    this.importInput()?.nativeElement.click();
+  }
+
+  async importVaultFile(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = normalizeVault(JSON.parse(await file.text()));
+      this.draft.set(parsed);
+      this.error.set('');
+      this.step.set('review');
+    } catch {
+      this.error.set('Could not import vault JSON. Make sure you selected a valid exported vault file.');
+    } finally {
+      input.value = '';
+    }
   }
 
   async clearAll(): Promise<void> {
     await this.vs.clearAllData();
     this.layout.resetCompletedSteps();
     this.rawText.set('');
-    this.draft.set(defaultVault());
+    this.draft.set(emptyVault());
     this.step.set('paste');
   }
 

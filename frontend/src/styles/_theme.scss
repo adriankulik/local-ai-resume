@@ -9,6 +9,7 @@
 // =========================================================================
 
 @mixin -dark-tokens {
+  color-scheme: dark;
   --c-bg:               #{v.$dark-bg};
   --c-bg-elevated:      #{v.$dark-bg-elevated};
   --c-bg-translucent:   #{v.$dark-bg-translucent};
@@ -32,6 +33,7 @@
 }
 
 @mixin -light-tokens {
+  color-scheme: light;
   --c-bg:               #{v.$light-bg};
   --c-bg-elevated:      #{v.$light-bg-elevated};
   --c-bg-translucent:   #{v.$light-bg-translucent};

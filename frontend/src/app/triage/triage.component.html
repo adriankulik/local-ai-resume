@@ -62,7 +62,7 @@
             variant="ghost"
             size="sm"
             (click)="continueManually()"
-            title="Triage your bullets and resume manually without a job description"
+            title="Triage your bullet points and resume manually without a job description"
           >
             Continue manually
           </button>
@@ -129,7 +129,7 @@
             <span class="hint block">{{ matchedCount() }} of {{ matches().length }} keywords covered</span>
           } @else {
             <span class="count-large">Manual Curation</span>
-            <span class="hint block">Review bullets, summary, and skills below</span>
+            <span class="hint block">Review bullet points, summary, and skills below</span>
           }
         </div>
         <div class="row wrap align-center gap-2">
@@ -161,10 +161,7 @@
       }
 
       <div class="quick-export-strip">
-        <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="exportPdf()">
-          Export PDF
-        </button>
-        <button app-button type="button" variant="ghost" size="md" [iconLeading]="previewIcon" (click)="viewPreview()">
+        <button app-button type="button" variant="primary" size="md" [fullWidth]="true" [iconLeading]="previewIcon" (click)="viewPreview()">
           Preview Resume
         </button>
       </div>
@@ -174,7 +171,7 @@
     @if (matches().length) {
       <section class="card card--divided" aria-label="ATS keyword match">
         <div class="card-head">
-          <h3>Keywords &amp; Bullets</h3>
+          <h3>Keywords &amp; Bullet Points</h3>
           @if (matchedCount() < matches().length) {
             <button
               app-button
@@ -184,7 +181,7 @@
               [iconLeading]="sparklesIcon"
               [disabled]="!ai.isAvailable || enhancing()"
               [loading]="enhancing()"
-              [loadingMessages]="enhancingMessages"
+              [preserveLabelOnLoading]="true"
               (click)="enhanceMissingKeywords()"
               title="Use AI to enhance your resume with missing ATS keywords"
             >
@@ -208,7 +205,20 @@
                 } @else if (m.inCerts) {
                   <span class="match__bullet muted">Covered in certifications &mdash; no matching bullet.</span>
                 } @else {
-                  <span class="match__bullet muted">Not found in your vault.</span>
+                  <span class="match__bullet muted">
+                    Not found in your vault.
+                    <button
+                      app-button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      [iconLeading]="plusIcon"
+                      [attr.aria-label]="'Add ' + m.keyword + ' to skills'"
+                      (click)="addMissingKeywordToSkills(m.keyword)"
+                    >
+                      Add to skills
+                    </button>
+                  </span>
                 }
               </li>
             }
@@ -232,14 +242,34 @@
           Skills (comma separated)
           <textarea rows="2" [ngModel]="(vs.tailoredSkills() ?? vs.vault().skills).join(', ')" (change)="setTailoredSkills($any($event.target).value)"></textarea>
         </label>
+        @if (aiAddedSkills().length) {
+          <div class="ai-added-skills" role="status">
+            <span class="ai-added-skills__label">Added by AI:</span>
+            <div class="chips">
+              @for (sk of aiAddedSkills(); track sk) {
+                <span class="chip ok">
+                  {{ sk }}
+                  <button
+                    type="button"
+                    class="chip-remove"
+                    [attr.aria-label]="'Remove AI-added skill ' + sk"
+                    (click)="removeAiAddedSkill(sk)"
+                  >
+                    &times;
+                  </button>
+                </span>
+              }
+            </div>
+          </div>
+        }
         <p class="hint">Tailored for this job description. Changes update the preview immediately.</p>
       </div>
     </section>
 
-    <!-- Bullet Triage -->
-    <app-collapsible title="Bullet triage" [badge]="selectedCount() + ' selected'" [badgeWarn]="selectedCount() > cap()" [(open)]="triageOpen">
+    <!-- Bullet Point Triage -->
+    <app-collapsible title="Bullet point triage" [badge]="selectedCount() + ' selected'" [badgeWarn]="selectedCount() > cap()" [(open)]="triageOpen">
       @if (vs.settings().strictOnePage && selectedCount() > cap()) {
-        <p class="msg error">1-page mode is on: more than {{ cap() }} bullets will likely overflow the page.</p>
+        <p class="msg error">1-page mode is on: more than {{ cap() }} bullet points will likely overflow the page.</p>
       }
       <div class="row wrap">
         <button app-button type="button" variant="secondary" size="sm" (click)="vs.selectAll()">Select all</button>
@@ -254,7 +284,27 @@
               <li>
                 <label class="check">
                   <input type="checkbox" [checked]="vs.selectedBulletIds().has(b.id)" (change)="onToggle(b.id, $event)" />
-                  <span>{{ b.text }}</span>
+                  <span>
+                    @for (seg of bulletSegments(b.text); track $index) {
+                      @switch (seg.type) {
+                        @case ('link') {
+                          <a class="triage-link" [href]="seg.url" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ seg.label }}</a>
+                        }
+                        @case ('code') {
+                          <code>{{ seg.text }}</code>
+                        }
+                        @case ('bold') {
+                          <strong>{{ seg.text }}</strong>
+                        }
+                        @case ('italic') {
+                          <em>{{ seg.text }}</em>
+                        }
+                        @default {
+                          {{ seg.text }}
+                        }
+                      }
+                    }
+                  </span>
                 </label>
               </li>
             }
@@ -280,21 +330,18 @@
             [loadingMessages]="proposingMessages"
             (click)="propose(e.id)"
           >
-            Suggest bullet for this job
+            Suggest bullet point for this job
           </button>
         </div>
       } @empty {
-        <p class="hint">Add roles in the vault to triage bullets.</p>
+        <p class="hint">Add roles in the vault to triage bullet points.</p>
       }
       <p class="hint">AI suggestions only describe plausible work &mdash; verify all facts before exporting.</p>
     </app-collapsible>
 
     <!-- Bottom Sticky Actions -->
     <div class="triage-bottom-bar">
-      <button app-button type="button" variant="primary" size="md" [fullWidth]="true" [iconLeading]="exportIcon" (click)="exportPdf()">
-        Export PDF
-      </button>
-      <button app-button type="button" variant="ghost" size="md" [fullWidth]="true" [iconLeading]="previewIcon" (click)="viewPreview()">
+      <button app-button type="button" variant="primary" size="md" [fullWidth]="true" [iconLeading]="previewIcon" (click)="viewPreview()">
         Preview Resume
       </button>
     </div>

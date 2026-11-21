@@ -70,7 +70,7 @@ const vaultSchema = {
     contact: {
       type: 'object',
       properties: {
-        fullName: str, email: str, phone: str, location: str, linkedin: str,
+        fullName: str, email: str, phone: str, location: str, linkedin: str, github: str,
         links: { type: 'array', items: str },
       },
       required: ['fullName', 'email', 'phone', 'location', 'links'],
@@ -100,7 +100,7 @@ const vaultSchema = {
       items: {
         type: 'object',
         properties: { name: str, issuer: str, year: str },
-        required: ['name', 'issuer', 'year'],
+        required: ['name', 'issuer'],
       },
     },
     skills: { type: 'array', items: str },
@@ -303,7 +303,18 @@ export class AiService {
       if (!provider) {
         throw new Error('No AI provider available');
       }
-      return await provider.generateJson<T>(system, input, schema);
+      try {
+        return await provider.generateJson<T>(system, input, schema);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Failed to parse valid JSON')) {
+          return await provider.generateJson<T>(
+            `${system}\n\nIMPORTANT: Your previous response was not valid JSON. Return ONLY a single valid JSON object with no headings, no numbered lists, and no markdown prose.`,
+            input,
+            schema,
+          );
+        }
+        throw err;
+      }
     } finally {
       this.busy.set(false);
       this.refreshAvailability();
@@ -360,6 +371,7 @@ export class AiService {
     const system =
       'Rewrite or propose 2 strong, metric-driven resume bullet points for the specified role that naturally incorporate the missing job description keywords. ' +
       'Only describe plausible work for this role; keep each bullet to one sentence. ' +
+      'Return ONLY valid JSON: {"proposedBullets": ["...", "..."]}. ' +
       LANGUAGE_RULE;
     const input =
       `ROLE: ${exp.role} at ${exp.company}\nEXISTING BULLETS:\n${exp.bullets.map((b) => `- ${b.text}`).join('\n')}\n\n` +
@@ -387,6 +399,7 @@ export class AiService {
       'Return: (1) `proposedBullets`: up to 2 strong, metric-driven one-sentence bullets for the target role incorporating missing keywords; ' +
       '(2) `summary`: an updated 2-3 sentence professional summary weaving in relevant missing keywords without inventing false claims; ' +
       '(3) `suggestedSkills`: missing technical/domain keywords from the missing list that belong in the skills section. ' +
+      'Return ONLY valid JSON: {"summary": "...", "proposedBullets": ["..."], "suggestedSkills": ["..."]}. ' +
       LANGUAGE_RULE;
     const roleContext = targetRole
       ? `TARGET ROLE: ${targetRole.role} at ${targetRole.company}\nEXISTING BULLETS:\n${targetRole.bullets.map((b) => `- ${b.text}`).join('\n')}`
@@ -428,7 +441,12 @@ export class AiService {
           bullets: (e.bullets ?? []).map((t: string) => ({ id: `b_${++b}`, text: t })),
         })),
         education: (raw.education ?? []).map((e: any, i: number) => ({ ...e, id: `edu_${i + 1}` })),
-        certifications: (raw.certifications ?? []).map((c: any, i: number) => ({ ...c, id: `cert_${i + 1}` })),
+        certifications: (raw.certifications ?? []).map((c: any, i: number) => ({
+          name: c?.name ?? '',
+          issuer: c?.issuer ?? '',
+          year: c?.year ?? '',
+          id: `cert_${i + 1}`,
+        })),
         settings: base.settings,
       };
       const vault = normalizeVault(withIds);
