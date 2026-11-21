@@ -61,7 +61,21 @@ describe('TriageComponent', () => {
     expect(vaultService.selectedBulletIds().size).toBeGreaterThan(0);
   });
 
-  it('extracts keywords but preserves vault summary and bullets when continueManually is called with JD', () => {
+  it('extracts keywords, tailors matching bullets, and preserves vault summary when continueManually is called with JD', () => {
+    vaultService.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Engineer',
+        company: 'Acme',
+        startDate: '2022-01',
+        endDate: 'Present',
+        bullets: [
+          { id: 'b_match', text: 'Built Angular and TypeScript frontend applications' },
+          { id: 'b_other', text: 'Managed office catering and supplies' },
+        ],
+      });
+    });
+    vaultService.selectAll();
     const originalSummary = vaultService.vault().summary;
     component.jd.set('Senior Angular engineer skilled in TypeScript and frontend architecture');
     component.continueManually();
@@ -69,9 +83,21 @@ describe('TriageComponent', () => {
     expect(component.manualMode()).toBeTrue();
     expect(component.keywords().length).toBeGreaterThan(0);
     expect(component.source()).toBe('fallback');
+    expect(vaultService.selectedBulletIds().has('b_match')).toBeTrue();
+    expect(vaultService.selectedBulletIds().has('b_other')).toBeFalse();
     // Summary was not overwritten by generative AI
     expect(vaultService.tailoredSummary()).toBeNull();
     expect(vaultService.vault().summary).toBe(originalSummary);
+  });
+
+  it('auto-runs analyze on paste when JD has sufficient length', (done) => {
+    const analyzeSpy = spyOn(component, 'analyze').and.resolveTo();
+    component.jd.set('Looking for a Senior TypeScript & Angular Engineer to build scalable apps.');
+    component.onJdPaste();
+    setTimeout(() => {
+      expect(analyzeSpy).toHaveBeenCalled();
+      done();
+    }, 10);
   });
 
   it('switches layout tab to preview and marks triage completed when viewPreview is clicked', () => {

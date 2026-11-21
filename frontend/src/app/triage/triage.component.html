@@ -45,28 +45,30 @@
           </button>
         }
 
-        <div class="row wrap align-center gap-2">
-          <button
-            app-button
-            type="button"
-            variant="ghost"
-            size="sm"
-            class="toggle-manual-btn"
-            (click)="toggleManualInput()"
-          >
-            {{ showManualInput() || !ext.isExtension() ? 'Hide manual paste' : 'Or paste job description manually' }}
-          </button>
-          <button
-            app-button
-            type="button"
-            variant="ghost"
-            size="sm"
-            (click)="continueManually()"
-            title="Triage your bullet points and resume manually without a job description"
-          >
-            Continue manually
-          </button>
-        </div>
+        @if (ext.isExtension()) {
+          <div class="row wrap align-center gap-2">
+            <button
+              app-button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="toggle-manual-btn"
+              (click)="toggleManualInput()"
+            >
+              {{ showManualInput() ? 'Hide manual paste' : 'Or paste job description manually' }}
+            </button>
+            <button
+              app-button
+              type="button"
+              variant="ghost"
+              size="sm"
+              (click)="continueManually()"
+              title="Triage your bullet points and resume manually without a job description"
+            >
+              Continue manually
+            </button>
+          </div>
+        }
       </div>
 
       @if (showManualInput() || !ext.isExtension()) {
@@ -78,6 +80,7 @@
             placeholder="Paste target job description here…"
             [ngModel]="jd()"
             (ngModelChange)="jd.set($event)"
+            (paste)="onJdPaste()"
           ></textarea>
           <div class="row wrap gap-2" style="margin-top: 8px;">
             <button
