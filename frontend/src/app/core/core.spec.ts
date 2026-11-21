@@ -103,6 +103,23 @@ describe('parseMarkdownLinks', () => {
     ]);
   });
 
+  it('parses markdown links nested inside bold or italic', () => {
+    const segs = parseMarkdownLinks(
+      '**[Desqueezer](https://github.com/adriankulik/Desqueezer):** Adobe Lightroom plugin.',
+    );
+    expect(segs).toEqual([
+      {
+        type: 'bold',
+        text: '[Desqueezer](https://github.com/adriankulik/Desqueezer):',
+        children: [
+          { type: 'link', label: 'Desqueezer', url: 'https://github.com/adriankulik/Desqueezer' },
+          { type: 'text', text: ':' },
+        ],
+      },
+      { type: 'text', text: ' Adobe Lightroom plugin.' },
+    ]);
+  });
+
   it('ignores unsafe protocols like javascript:', () => {
     const segs = parseMarkdownLinks('Click [here](javascript:alert(1)) now');
     expect(segs).toEqual([{ type: 'text', text: 'Click [here](javascript:alert(1)) now' }]);
