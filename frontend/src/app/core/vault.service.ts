@@ -32,6 +32,7 @@ export class VaultService {
 
   /** Resume-only additions & visibility overrides (keeps Master Vault untouched unless promoted). */
   readonly resumeOnlyBullets = signal<Record<string, Bullet[]>>({});
+  readonly resumeBulletOverrides = signal<Record<string, string>>({});
   readonly resumeOnlyExperience = signal<Experience[]>([]);
   readonly resumeOnlyEducation = signal<Education[]>([]);
   readonly hiddenEducationIds = signal<Set<string>>(new Set());
@@ -267,10 +268,16 @@ export class VaultService {
   selectedExperience = computed<Experience[]>(() => {
     const sel = this.selectedBulletIds();
     const extraBullets = this.resumeOnlyBullets();
+    const overrides = this.resumeBulletOverrides();
     const vaultExps = this.vault()
       .experience.map((e) => ({
         ...e,
-        bullets: [...e.bullets.filter((b) => sel.has(b.id)), ...(extraBullets[e.id] ?? [])],
+        bullets: [
+          ...e.bullets
+            .filter((b) => sel.has(b.id))
+            .map((b) => (overrides[b.id] !== undefined ? { ...b, text: overrides[b.id] } : b)),
+          ...(extraBullets[e.id] ?? []),
+        ],
       }))
       .filter((e) => e.bullets.length > 0);
     return [...vaultExps, ...this.resumeOnlyExperience()];
@@ -312,6 +319,7 @@ export class VaultService {
     this.tailoredSummary.set(null);
     this.tailoredSkills.set(null);
     this.resumeOnlyBullets.set({});
+    this.resumeBulletOverrides.set({});
     this.resumeOnlyExperience.set([]);
     this.resumeOnlyEducation.set([]);
     this.hiddenEducationIds.set(new Set());
