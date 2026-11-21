@@ -51,6 +51,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly newSkill = signal('');
   readonly editingSummary = signal(false);
   readonly summaryDraft = signal('');
+  readonly editingRoleId = signal<string | null>(null);
+  readonly roleDraft = signal({ role: '', company: '', startDate: '', endDate: '' });
+  readonly editingBullet = signal<{ expId: string; bulletId: string } | null>(null);
+  readonly bulletEditDraft = signal('');
 
   readonly scale = signal(1);
   readonly sheetHeight = signal(A4_H);
@@ -285,6 +289,92 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   updateNewRoleField<K extends 'role' | 'company' | 'startDate' | 'endDate' | 'bullet'>(key: K, value: string): void {
     this.newRole.update((r) => ({ ...r, [key]: value }));
+  }
+
+  startEditRole(exp: Experience): void {
+    this.editingRoleId.set(exp.id);
+    this.roleDraft.set({
+      role: exp.role,
+      company: exp.company,
+      startDate: exp.startDate,
+      endDate: exp.endDate,
+    });
+  }
+
+  updateRoleDraftField<K extends 'role' | 'company' | 'startDate' | 'endDate'>(key: K, value: string): void {
+    this.roleDraft.update((r) => ({ ...r, [key]: value }));
+  }
+
+  saveRoleEdit(): void {
+    const expId = this.editingRoleId();
+    if (!expId) return;
+    const draft = this.roleDraft();
+    const role = draft.role.trim();
+    const company = draft.company.trim();
+    const startDate = draft.startDate.trim();
+    const endDate = draft.endDate.trim();
+    if (!role && !company) return;
+
+    const isVaultRole = this.vs.vault().experience.some((e) => e.id === expId);
+    if (isVaultRole) {
+      this.vs.update((v) => {
+        const target = v.experience.find((e) => e.id === expId);
+        if (target) {
+          target.role = role;
+          target.company = company;
+          target.startDate = startDate;
+          target.endDate = endDate;
+        }
+      });
+    } else {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) => (e.id === expId ? { ...e, role, company, startDate, endDate } : e)),
+      );
+    }
+    this.editingRoleId.set(null);
+  }
+
+  cancelRoleEdit(): void {
+    this.editingRoleId.set(null);
+  }
+
+  startEditBullet(expId: string, bullet: { id: string; text: string }): void {
+    this.editingBullet.set({ expId, bulletId: bullet.id });
+    this.bulletEditDraft.set(bullet.text);
+  }
+
+  saveBulletEdit(): void {
+    const target = this.editingBullet();
+    if (!target) return;
+    const text = this.bulletEditDraft().trim();
+    if (!text) return;
+
+    const { expId, bulletId } = target;
+    const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
+    if (vaultRole?.bullets.some((b) => b.id === bulletId)) {
+      this.vs.update((v) => {
+        const b = v.experience.find((e) => e.id === expId)?.bullets.find((x) => x.id === bulletId);
+        if (b) b.text = text;
+      });
+    } else if ((this.vs.resumeOnlyBullets()[expId] ?? []).some((b) => b.id === bulletId)) {
+      this.vs.resumeOnlyBullets.update((map) => ({
+        ...map,
+        [expId]: (map[expId] ?? []).map((b) => (b.id === bulletId ? { ...b, text } : b)),
+      }));
+    } else {
+      this.vs.resumeOnlyExperience.update((list) =>
+        list.map((e) =>
+          e.id === expId
+            ? { ...e, bullets: e.bullets.map((b) => (b.id === bulletId ? { ...b, text } : b)) }
+            : e,
+        ),
+      );
+    }
+    this.editingBullet.set(null);
+  }
+
+  cancelBulletEdit(): void {
+    this.editingBullet.set(null);
   }
 
   addResumeExperience(): void {

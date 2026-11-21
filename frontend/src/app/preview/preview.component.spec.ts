@@ -221,6 +221,67 @@ describe('PreviewComponent', () => {
     expect(link?.getAttribute('href')).toBe('https://github.com/kmd-labs/design-system');
   });
 
+  it('edits role title, company, dates, and existing bullets in edit mode', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience.push({
+        id: 'exp_1',
+        role: 'Junior Dev',
+        company: 'OldCorp',
+        startDate: '2020-01',
+        endDate: '2021-01',
+        bullets: [{ id: 'b_1', text: 'Original bullet' }],
+      });
+    });
+    vs.selectAll();
+    comp.editMode.set(true);
+    fixture.detectChanges();
+
+    comp.startEditRole(vs.vault().experience[0]);
+    comp.updateRoleDraftField('role', 'Senior Dev');
+    comp.updateRoleDraftField('company', 'NewCorp');
+    comp.updateRoleDraftField('startDate', '2021-02');
+    comp.updateRoleDraftField('endDate', 'Present');
+    comp.saveRoleEdit();
+
+    const updatedRole = vs.vault().experience[0];
+    expect(updatedRole.role).toBe('Senior Dev');
+    expect(updatedRole.company).toBe('NewCorp');
+    expect(updatedRole.startDate).toBe('2021-02');
+    expect(updatedRole.endDate).toBe('Present');
+
+    comp.startEditBullet('exp_1', updatedRole.bullets[0]);
+    comp.bulletEditDraft.set('Updated bullet text');
+    comp.saveBulletEdit();
+
+    expect(vs.vault().experience[0].bullets[0].text).toBe('Updated bullet text');
+  });
+
+  it('shows A4 page break visualiser in edit mode only when 1-page enforcer is enabled', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.r-page-break')).toBeNull();
+
+    comp.editMode.set(true);
+    comp.set('strictOnePage', true);
+    fixture.detectChanges();
+    expect(el.querySelector('.r-page-break')).toBeTruthy();
+
+    comp.set('strictOnePage', false);
+    fixture.detectChanges();
+    expect(el.querySelector('.r-page-break')).toBeNull();
+  });
+
   it('reorders experience roles and bullets in edit mode', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);
