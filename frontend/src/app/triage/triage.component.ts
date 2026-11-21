@@ -13,7 +13,7 @@ import { AiService } from '../core/ai.service';
 import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
-import { extractKeywords, normalize, textHasKeyword } from '../core/keyword-matcher';
+import { fallbackTriage, normalize, textHasKeyword } from '../core/keyword-matcher';
 import { RichTextComponent } from '../core/rich-text.component';
 
 export interface KeywordMatch {
@@ -118,15 +118,26 @@ export class TriageComponent {
     this.error.set('');
     this.manualMode.set(true);
     if (text) {
-      // Heuristic keyword extraction from JD without AI rewriting bullets or summary
-      const kws = extractKeywords(text, this.vs.vault());
-      this.keywords.set(kws);
+      // Heuristic keyword extraction and bullet selection from JD without AI rewriting summary
+      const fallback = fallbackTriage(this.vs.vault(), text, this.cap());
+      this.keywords.set(fallback.extractedKeywords);
       this.source.set('fallback');
+      if (fallback.selectedBulletIds.length > 0) {
+        this.vs.setSelected(fallback.selectedBulletIds);
+      }
     }
     if (this.vs.selectedBulletIds().size === 0) {
       this.vs.selectAll();
     }
     this.layout.markStepCompleted('triage');
+  }
+
+  onJdPaste(): void {
+    setTimeout(() => {
+      if (this.jd().trim().length >= 40 && !this.analyzing()) {
+        void this.analyze();
+      }
+    });
   }
 
   toggleManualInput(): void {
