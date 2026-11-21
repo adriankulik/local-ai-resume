@@ -288,6 +288,47 @@ describe('PreviewComponent', () => {
     expect(el.querySelector('.r-page-break')).toBeNull();
   });
 
+  it('supports switching unit system, paper size presets (US/Europe), and margin presets', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    fixture.detectChanges();
+
+    const sheet = fixture.nativeElement.querySelector('.sheet') as HTMLElement;
+    expect(sheet.style.width).toBe('210mm');
+    expect(sheet.style.padding).toBe('12mm 14mm');
+
+    comp.setUnitSystem('in');
+    comp.setPaperSize('letter');
+    comp.setMarginPreset('wide');
+    fixture.detectChanges();
+
+    expect(sheet.style.width).toBe('215.9mm');
+    expect(sheet.style.minHeight).toBe('279.4mm');
+    expect(sheet.style.padding).toBe('22mm 25.4mm');
+    expect(comp.paperSizeOptions().find((o) => o.value === 'letter')?.label).toContain('8.5 × 11 in');
+    expect(comp.marginOptions().find((o) => o.value === 'wide')?.label).toContain('0.87 × 1 in');
+    expect(comp.pageLimitLabel()).toBe('US Letter page 1 limit (11 in)');
+  });
+
+  it('hides Export PDF button while editMode is active', async () => {
+    await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(PreviewComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.toolbar__actions button')?.textContent).toContain('Export PDF');
+
+    comp.editMode.set(true);
+    fixture.detectChanges();
+    expect(el.querySelector('.toolbar__actions button')).toBeNull();
+  });
+
   it('reorders experience roles and bullets in edit mode', async () => {
     await TestBed.configureTestingModule({ imports: [PreviewComponent] }).compileComponents();
     const fixture = TestBed.createComponent(PreviewComponent);

@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { AfterViewInit, Component, ElementRef, OnDestroy, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideArrowDown, LucideArrowUp, LucideCheck, LucideDynamicIcon, LucideFileDown, LucidePencil, LucidePlus, LucideTrash2, LucideX } from '@lucide/angular';
 import { CollapsibleComponent } from '../collapsible/collapsible.component';
@@ -8,12 +9,22 @@ import { ButtonComponent } from '../button/button.component';
 import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
-import { Experience, THEMES, ThemeName, VaultSettings, nextId } from '../core/vault.model';
+import {
+  Experience,
+  MARGIN_PRESETS,
+  MarginPresetId,
+  PAPER_SIZES,
+  PaperSizeId,
+  THEMES,
+  ThemeName,
+  UNIT_SYSTEMS,
+  UnitSystem,
+  VaultSettings,
+  nextId,
+} from '../core/vault.model';
 import { RichTextComponent } from '../core/rich-text.component';
 
 const MM_PX = 96 / 25.4;
-const A4_W = 210 * MM_PX;
-const A4_H = 297 * MM_PX;
 
 @Component({
   selector: 'app-preview',
@@ -23,7 +34,9 @@ const A4_H = 297 * MM_PX;
 })
 export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly vs = inject(VaultService);
+  private readonly doc = inject(DOCUMENT);
   readonly themes = THEMES;
+  readonly unitSystems = UNIT_SYSTEMS;
   readonly exportIcon = LucideFileDown.icon;
   readonly editIcon = LucidePencil.icon;
   readonly plusIcon = LucidePlus.icon;
@@ -56,11 +69,59 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly editingBullet = signal<{ expId: string; bulletId: string } | null>(null);
   readonly bulletEditDraft = signal('');
 
-  readonly scale = signal(1);
-  readonly sheetHeight = signal(A4_H);
-  readonly overflow = computed(() => this.sheetHeight() > A4_H + 1);
-
   readonly s = this.vs.settings;
+  readonly paperSpec = computed(() => PAPER_SIZES[this.s().paperSize] ?? PAPER_SIZES.a4);
+  readonly marginSpec = computed(() => MARGIN_PRESETS[this.s().marginPreset] ?? MARGIN_PRESETS.normal);
+  readonly pageWidthPx = computed(() => this.paperSpec().widthMm * MM_PX);
+  readonly pageHeightPx = computed(() => this.paperSpec().heightMm * MM_PX);
+  readonly sheetPadding = computed(() => {
+    const m = this.marginSpec();
+    return `${m.topBottomMm}mm ${m.leftRightMm}mm`;
+  });
+  readonly pageLimitLabel = computed(() => {
+    const p = this.paperSpec();
+    const u = this.s().unitSystem;
+    const h = u === 'in' ? `${p.heightIn} in` : `${p.heightMm}mm`;
+    return `${p.label} page 1 limit (${h})`;
+  });
+  readonly paperSizeOptions = computed(() => {
+    const u = this.s().unitSystem;
+    return Object.values(PAPER_SIZES).map((p) => ({
+      value: p.id,
+      label:
+        u === 'in'
+          ? `${p.label} (${p.widthIn} × ${p.heightIn} in)`
+          : `${p.label} (${p.widthMm} × ${p.heightMm} mm)`,
+    }));
+  });
+  readonly marginOptions = computed(() => {
+    const u = this.s().unitSystem;
+    return Object.values(MARGIN_PRESETS).map((m) => ({
+      value: m.id,
+      label:
+        u === 'in'
+          ? `${m.label} (${m.topBottomIn} × ${m.leftRightIn} in)`
+          : `${m.label} (${m.topBottomMm} × ${m.leftRightMm} mm)`,
+    }));
+  });
+
+  readonly scale = signal(1);
+  readonly sheetHeight = signal(PAPER_SIZES.a4.heightMm * MM_PX);
+  readonly overflow = computed(() => this.sheetHeight() > this.pageHeightPx() + 1);
+  private pageStyleEl: HTMLStyleElement | null = null;
+
+  constructor() {
+    effect(() => {
+      const p = this.paperSpec();
+      if (!this.pageStyleEl) {
+        this.pageStyleEl = this.doc.createElement('style');
+        this.pageStyleEl.id = 'resume-page-size-rule';
+        this.doc.head.appendChild(this.pageStyleEl);
+      }
+      this.pageStyleEl.textContent = `@page { size: ${p.widthMm}mm ${p.heightMm}mm; margin: 0; }`;
+    });
+  }
+
   readonly showPhoto = computed(() => this.s().showPhoto && !!this.vs.vault().contact.photoDataUrl);
 
   readonly summary = computed(() => (this.vs.hiddenSummary() ? '' : (this.vs.tailoredSummary() ?? this.vs.vault().summary)));
@@ -119,7 +180,7 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     const update = () => {
       const w = this.stage().nativeElement.clientWidth;
-      this.scale.set(Math.min(1, Math.max(0.3, (w - 8) / A4_W)));
+      this.scale.set(Math.min(1, Math.max(0.3, (w - 8) / this.pageWidthPx())));
       this.sheetHeight.set(this.sheet().nativeElement.offsetHeight);
     };
     this.ro = new ResizeObserver(() => queueMicrotask(update));
@@ -130,15 +191,29 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.ro?.disconnect();
+    this.pageStyleEl?.remove();
   }
 
   set<K extends keyof VaultSettings>(key: K, value: VaultSettings[K]): void {
-    this.vs.vault().settings[key] = value;
-    this.vs.touch();
+    this.vs.update((v) => {
+      v.settings[key] = value;
+    });
   }
 
   setTheme(v: ThemeName): void {
     this.set('theme', v);
+  }
+
+  setUnitSystem(v: UnitSystem): void {
+    this.set('unitSystem', v);
+  }
+
+  setPaperSize(v: PaperSizeId): void {
+    this.set('paperSize', v);
+  }
+
+  setMarginPreset(v: MarginPresetId): void {
+    this.set('marginPreset', v);
   }
 
   // --- Visual editor helpers ---

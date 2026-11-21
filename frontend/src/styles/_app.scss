@@ -403,3 +403,14 @@ fieldset.role {
 
   &--nested { border-top-style: dashed; }
 }
+
+.settings__subhead {
+  margin: v.$sp-3 0 0;
+  padding: v.$sp-3 0 v.$sp-1;
+  border-top: 1px solid var(--c-rule);
+  font-size: v.$fs-xs;
+  font-weight: v.$fw-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-ink-muted);
+}

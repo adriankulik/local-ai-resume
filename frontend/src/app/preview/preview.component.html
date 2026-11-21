@@ -4,7 +4,9 @@
     <div class="toolbar__head">
       <h2 class="panel-title">Live A4 Preview</h2>
       <div class="toolbar__actions">
-        <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
+        @if (!editMode()) {
+          <button app-button type="button" variant="primary" size="md" [iconLeading]="exportIcon" (click)="print()">Export PDF</button>
+        }
       </div>
     </div>
 
@@ -26,7 +28,7 @@
 
     @if (overflow()) {
       <p class="msg error" role="alert">
-        Content exceeds one A4 page. Deselect some bullet points{{ s().strictOnePage ? '' : ' or enable the 1-page enforcer' }}.
+        Content exceeds one {{ paperSpec().label }} page. Deselect some bullet points{{ s().strictOnePage ? '' : ' or enable the 1-page enforcer' }}.
       </p>
     }
 
@@ -72,6 +74,32 @@
             [ngModel]="s().rodoCompanyName" (ngModelChange)="set('rodoCompanyName', $event)" />
         </div>
       }
+
+      <h4 class="settings__subhead">Page setup</h4>
+
+      <div class="setting">
+        <span class="setting__text">
+          <span class="setting__label">Units</span>
+          <span class="setting__desc">Display dimensions in millimeters (Europe) or inches (US)</span>
+        </span>
+        <app-dropdown class="setting__control" label="Units" [showLabel]="false" [options]="unitSystems" [value]="s().unitSystem" (valueChange)="setUnitSystem($event)" />
+      </div>
+
+      <div class="setting">
+        <span class="setting__text">
+          <span class="setting__label">Paper size</span>
+          <span class="setting__desc">European (A4, A5) and US (Letter, Legal) presets</span>
+        </span>
+        <app-dropdown class="setting__control" label="Paper size" [showLabel]="false" [options]="paperSizeOptions()" [value]="s().paperSize" (valueChange)="setPaperSize($event)" />
+      </div>
+
+      <div class="setting">
+        <span class="setting__text">
+          <span class="setting__label">Margins</span>
+          <span class="setting__desc">Predefined page padding around the resume</span>
+        </span>
+        <app-dropdown class="setting__control" label="Margins" [showLabel]="false" [options]="marginOptions()" [value]="s().marginPreset" (valueChange)="setMarginPreset($event)" />
+      </div>
     </div>
     </app-collapsible>
 
@@ -79,7 +107,7 @@
   </div>
 
   <div class="stage" #stage>
-    <div class="stage-bar no-print" [style.width.px]="793.7 * scale()">
+    <div class="stage-bar no-print" [style.width.px]="pageWidthPx() * scale()">
       <button
         app-button
         type="button"
@@ -92,17 +120,20 @@
         {{ editMode() ? 'Save' : 'Edit resume' }}
       </button>
     </div>
-    <div class="sheet-wrap" [style.width.px]="793.7 * scale()" [style.height.px]="sheetHeight() * scale()">
+    <div class="sheet-wrap" [style.width.px]="pageWidthPx() * scale()" [style.height.px]="sheetHeight() * scale()">
       <article
         #sheet
         class="sheet"
         [class.compact]="s().strictOnePage"
         [attr.data-theme]="s().theme"
+        [style.width.mm]="paperSpec().widthMm"
+        [style.min-height.mm]="paperSpec().heightMm"
+        [style.padding]="sheetPadding()"
         [style.transform]="'scale(' + scale() + ')'"
       >
         @if (editMode() && s().strictOnePage) {
-          <div class="r-page-break no-print" aria-hidden="true">
-            <span>A4 page 1 limit (297mm)</span>
+          <div class="r-page-break no-print" [style.top]="'calc(' + paperSpec().heightMm + 'mm - 1px)'" aria-hidden="true">
+            <span>{{ pageLimitLabel() }}</span>
           </div>
         }
         <header class="r-header">
