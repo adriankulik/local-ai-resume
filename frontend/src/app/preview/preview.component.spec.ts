@@ -259,7 +259,13 @@ describe('PreviewComponent', () => {
     comp.bulletEditDraft.set('Updated bullet text');
     comp.saveBulletEdit();
 
+    expect(vs.selectedExperience()[0].bullets[0].text).toBe('Updated bullet text');
+    expect(vs.vault().experience[0].bullets[0].text).toBe('Original bullet');
+    expect(comp.pendingVaultPrompt()?.label).toBe('bullet point edit');
+
+    comp.confirmVaultPrompt();
     expect(vs.vault().experience[0].bullets[0].text).toBe('Updated bullet text');
+    expect(comp.pendingVaultPrompt()).toBeNull();
   });
 
   it('shows A4 page break visualiser in edit mode only when 1-page enforcer is enabled', async () => {

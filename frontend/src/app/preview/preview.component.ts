@@ -351,16 +351,40 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
 
     const { expId, bulletId } = target;
     const vaultRole = this.vs.vault().experience.find((e) => e.id === expId);
-    if (vaultRole?.bullets.some((b) => b.id === bulletId)) {
-      this.vs.update((v) => {
-        const b = v.experience.find((e) => e.id === expId)?.bullets.find((x) => x.id === bulletId);
-        if (b) b.text = text;
-      });
+    const vaultBullet = vaultRole?.bullets.find((x) => x.id === bulletId);
+    if (vaultBullet) {
+      this.vs.resumeBulletOverrides.update((m) => ({ ...m, [bulletId]: text }));
+      if (text !== vaultBullet.text) {
+        this.pendingVaultPrompt.set({
+          label: 'bullet point edit',
+          commit: () => {
+            this.vs.update((v) => {
+              const b = v.experience.find((e) => e.id === expId)?.bullets.find((x) => x.id === bulletId);
+              if (b) b.text = text;
+            });
+            this.vs.resumeBulletOverrides.update((m) => {
+              const copy = { ...m };
+              delete copy[bulletId];
+              return copy;
+            });
+          },
+        });
+      }
     } else if ((this.vs.resumeOnlyBullets()[expId] ?? []).some((b) => b.id === bulletId)) {
       this.vs.resumeOnlyBullets.update((map) => ({
         ...map,
         [expId]: (map[expId] ?? []).map((b) => (b.id === bulletId ? { ...b, text } : b)),
       }));
+      this.pendingVaultPrompt.set({
+        label: 'bullet point',
+        commit: () => {
+          this.vs.addBullet(expId, text, true);
+          this.vs.resumeOnlyBullets.update((map) => ({
+            ...map,
+            [expId]: (map[expId] ?? []).filter((b) => b.id !== bulletId),
+          }));
+        },
+      });
     } else {
       this.vs.resumeOnlyExperience.update((list) =>
         list.map((e) =>
@@ -369,6 +393,10 @@ export class PreviewComponent implements AfterViewInit, OnDestroy {
             : e,
         ),
       );
+      this.pendingVaultPrompt.set({
+        label: 'experience role',
+        commit: () => this.promoteResumeOnlyExperience(expId),
+      });
     }
     this.editingBullet.set(null);
   }
