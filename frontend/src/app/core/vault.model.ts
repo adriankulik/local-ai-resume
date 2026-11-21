@@ -28,6 +28,47 @@ export interface Certification {
 }
 
 export type ThemeName = 'classic-serif' | 'modern-slate' | 'minimal-mono';
+export type UnitSystem = 'mm' | 'in';
+export type PaperSizeId = 'a4' | 'a5' | 'letter' | 'legal';
+export type MarginPresetId = 'compact' | 'normal' | 'comfortable' | 'wide';
+
+export interface PaperSizeSpec {
+  id: PaperSizeId;
+  label: string;
+  region: 'Europe' | 'US';
+  widthMm: number;
+  heightMm: number;
+  widthIn: number;
+  heightIn: number;
+}
+
+export interface MarginPresetSpec {
+  id: MarginPresetId;
+  label: string;
+  topBottomMm: number;
+  leftRightMm: number;
+  topBottomIn: number;
+  leftRightIn: number;
+}
+
+export const UNIT_SYSTEMS: { value: UnitSystem; label: string }[] = [
+  { value: 'mm', label: 'Millimeters (mm)' },
+  { value: 'in', label: 'Inches (in)' },
+];
+
+export const PAPER_SIZES: Record<PaperSizeId, PaperSizeSpec> = {
+  a4: { id: 'a4', label: 'A4', region: 'Europe', widthMm: 210, heightMm: 297, widthIn: 8.27, heightIn: 11.69 },
+  a5: { id: 'a5', label: 'A5', region: 'Europe', widthMm: 148, heightMm: 210, widthIn: 5.83, heightIn: 8.27 },
+  letter: { id: 'letter', label: 'US Letter', region: 'US', widthMm: 215.9, heightMm: 279.4, widthIn: 8.5, heightIn: 11 },
+  legal: { id: 'legal', label: 'US Legal', region: 'US', widthMm: 215.9, heightMm: 355.6, widthIn: 8.5, heightIn: 14 },
+};
+
+export const MARGIN_PRESETS: Record<MarginPresetId, MarginPresetSpec> = {
+  compact: { id: 'compact', label: 'Compact', topBottomMm: 8, leftRightMm: 10, topBottomIn: 0.31, leftRightIn: 0.39 },
+  normal: { id: 'normal', label: 'Normal', topBottomMm: 12, leftRightMm: 14, topBottomIn: 0.47, leftRightIn: 0.55 },
+  comfortable: { id: 'comfortable', label: 'Comfortable', topBottomMm: 16, leftRightMm: 18, topBottomIn: 0.63, leftRightIn: 0.71 },
+  wide: { id: 'wide', label: 'Wide', topBottomMm: 22, leftRightMm: 25.4, topBottomIn: 0.87, leftRightIn: 1.0 },
+};
 
 export interface VaultSettings {
   theme: ThemeName;
@@ -36,6 +77,9 @@ export interface VaultSettings {
   strictOnePage: boolean;
   includeRodoClause: boolean;
   rodoCompanyName: string;
+  unitSystem: UnitSystem;
+  paperSize: PaperSizeId;
+  marginPreset: MarginPresetId;
 }
 
 export interface Contact {
@@ -80,6 +124,9 @@ export function emptyVault(): MasterVault {
       strictOnePage: true,
       includeRodoClause: true,
       rodoCompanyName: '',
+      unitSystem: 'mm',
+      paperSize: 'a4',
+      marginPreset: 'normal',
     },
   };
 }
@@ -141,6 +188,9 @@ export function normalizeVault(raw: unknown): MasterVault {
 
   const s = (r['settings'] ?? {}) as Record<string, any>;
   const themes = THEMES.map((t) => t.value);
+  const unitSystems = UNIT_SYSTEMS.map((u) => u.value);
+  const paperSizes = Object.keys(PAPER_SIZES) as PaperSizeId[];
+  const marginPresets = Object.keys(MARGIN_PRESETS) as MarginPresetId[];
   base.settings = {
     theme: themes.includes(s['theme']) ? s['theme'] : base.settings.theme,
     showPhoto: typeof s['showPhoto'] === 'boolean' ? s['showPhoto'] : base.settings.showPhoto,
@@ -155,6 +205,9 @@ export function normalizeVault(raw: unknown): MasterVault {
         ? s['includeRodoClause']
         : base.settings.includeRodoClause,
     rodoCompanyName: str(s['rodoCompanyName']),
+    unitSystem: unitSystems.includes(s['unitSystem']) ? s['unitSystem'] : base.settings.unitSystem,
+    paperSize: paperSizes.includes(s['paperSize']) ? s['paperSize'] : base.settings.paperSize,
+    marginPreset: marginPresets.includes(s['marginPreset']) ? s['marginPreset'] : base.settings.marginPreset,
   };
   return base;
 }
