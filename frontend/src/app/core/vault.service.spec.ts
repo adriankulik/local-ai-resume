@@ -45,4 +45,37 @@ describe('VaultService persistence', () => {
     expect(localStorage.getItem(KEY)).toBeNull();
     expect(localStorage.getItem('ats-resume-builder:ats-onboarding-completed')).toBeNull();
   });
+
+  it('syncs vault and tailored state when storage changes in another tab/context', async () => {
+    const vs = TestBed.inject(VaultService);
+    await tick();
+    expect(vs.pristine()).toBeTrue();
+
+    const updatedVault = { summary: 'Edited in full tab', contact: { fullName: 'Ada Lovelace' } };
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: KEY,
+        newValue: JSON.stringify(updatedVault),
+      }),
+    );
+
+    expect(vs.vault().summary).toBe('Edited in full tab');
+    expect(vs.vault().contact.fullName).toBe('Ada Lovelace');
+    expect(vs.pristine()).toBeFalse();
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'ats-resume-builder:tailored-state',
+        newValue: JSON.stringify({
+          selectedBulletIds: ['b_1'],
+          tailoredSummary: 'Tailored from full tab',
+          tailoredSkills: ['TypeScript', 'Angular'],
+        }),
+      }),
+    );
+
+    expect(vs.tailoredSummary()).toBe('Tailored from full tab');
+    expect(vs.tailoredSkills()).toEqual(['TypeScript', 'Angular']);
+    expect(vs.selectedBulletIds().has('b_1')).toBeTrue();
+  });
 });

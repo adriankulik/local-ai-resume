@@ -111,4 +111,47 @@ export class StorageService {
     }
     localKeys.forEach((k) => localStorage.removeItem(k));
   }
+
+  /**
+   * Subscribes to storage mutations made in other extension contexts (e.g. side panel ↔ full tab)
+   * or other browser tabs. Returns an unsubscribe callback.
+   */
+  watch(onChange: (key: string, newValue: unknown) => void): () => void {
+    const cleanups: (() => void)[] = [];
+
+    if (this.hasChromeStorage && chrome.storage?.onChanged) {
+      const listener = (
+        changes: Record<string, chrome.storage.StorageChange>,
+        areaName: string,
+      ) => {
+        if (areaName !== 'local') return;
+        for (const [fullKey, change] of Object.entries(changes)) {
+          if (fullKey.startsWith(PREFIX)) {
+            onChange(fullKey.slice(PREFIX.length), change.newValue);
+          }
+        }
+      };
+      chrome.storage.onChanged.addListener(listener);
+      cleanups.push(() => chrome.storage.onChanged.removeListener(listener));
+    }
+
+    if (typeof window !== 'undefined') {
+      const storageListener = (event: StorageEvent) => {
+        if (!event.key || !event.key.startsWith(PREFIX)) return;
+        let parsed: unknown = undefined;
+        if (event.newValue !== null) {
+          try {
+            parsed = JSON.parse(event.newValue);
+          } catch {
+            return;
+          }
+        }
+        onChange(event.key.slice(PREFIX.length), parsed);
+      };
+      window.addEventListener('storage', storageListener);
+      cleanups.push(() => window.removeEventListener('storage', storageListener));
+    }
+
+    return () => cleanups.forEach((fn) => fn());
+  }
 }
