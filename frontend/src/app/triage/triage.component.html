@@ -285,25 +285,7 @@
                 <label class="check">
                   <input type="checkbox" [checked]="vs.selectedBulletIds().has(b.id)" (change)="onToggle(b.id, $event)" />
                   <span>
-                    @for (seg of bulletSegments(b.text); track $index) {
-                      @switch (seg.type) {
-                        @case ('link') {
-                          <a class="triage-link" [href]="seg.url" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ seg.label }}</a>
-                        }
-                        @case ('code') {
-                          <code>{{ seg.text }}</code>
-                        }
-                        @case ('bold') {
-                          <strong>{{ seg.text }}</strong>
-                        }
-                        @case ('italic') {
-                          <em>{{ seg.text }}</em>
-                        }
-                        @default {
-                          {{ seg.text }}
-                        }
-                      }
-                    }
+                    <app-rich-text [text]="b.text" linkClass="triage-link" [stopLinkPropagation]="true" />
                   </span>
                 </label>
               </li>

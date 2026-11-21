@@ -14,7 +14,7 @@ import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
 import { extractKeywords, normalize, textHasKeyword } from '../core/keyword-matcher';
-import { parseMarkdownLinks } from '../core/rich-text';
+import { RichTextComponent } from '../core/rich-text.component';
 
 export interface KeywordMatch {
   keyword: string;
@@ -31,7 +31,7 @@ const LOOSE_BULLET_CAP = 24;
 @Component({
   selector: 'app-triage',
   standalone: true,
-  imports: [FormsModule, CollapsibleComponent, ButtonComponent],
+  imports: [FormsModule, CollapsibleComponent, ButtonComponent, RichTextComponent],
   templateUrl: './triage.component.html',
   styleUrl: './triage.component.scss',
 })
@@ -45,7 +45,6 @@ export class TriageComponent {
   readonly zapIcon = LucideZap.icon;
   readonly sparklesIcon = LucideSparkles.icon;
   readonly resetIcon = LucideRotateCcw.icon;
-  readonly bulletSegments = parseMarkdownLinks;
 
   readonly triageOpen = signal(true);
   readonly jd = signal('');

@@ -237,25 +237,7 @@
                   @for (b of e.bullets; track b.id; let bFirst = $first, bLast = $last) {
                     <li class="r-bullet-item">
                       <span>
-                        @for (seg of bulletSegments(b.text); track $index) {
-                          @switch (seg.type) {
-                            @case ('link') {
-                              <a class="r-bullet-link" [href]="seg.url" target="_blank" rel="noopener noreferrer">{{ seg.label }}</a>
-                            }
-                            @case ('code') {
-                              <code class="r-bullet-code">{{ seg.text }}</code>
-                            }
-                            @case ('bold') {
-                              <strong>{{ seg.text }}</strong>
-                            }
-                            @case ('italic') {
-                              <em>{{ seg.text }}</em>
-                            }
-                            @default {
-                              {{ seg.text }}
-                            }
-                          }
-                        }
+                        <app-rich-text [text]="b.text" linkClass="r-bullet-link" codeClass="r-bullet-code" />
                       </span>
                       @if (editMode()) {
                         <span class="r-edit-actions no-print">

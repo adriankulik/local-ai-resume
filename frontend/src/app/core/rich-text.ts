@@ -2,10 +2,16 @@ export type TextSegment =
   | { type: 'text'; text: string }
   | { type: 'link'; label: string; url: string }
   | { type: 'code'; text: string }
-  | { type: 'bold'; text: string }
-  | { type: 'italic'; text: string };
+  | { type: 'bold'; text: string; children?: TextSegment[] }
+  | { type: 'italic'; text: string; children?: TextSegment[] };
 
-const INLINE_MD_RE = /\[([^\]]+)\]\(([^)\s]+)\)|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
+const INLINE_MD_PATTERN = /\[([^\]]+)\]\(([^)\s]+)\)|`([^`]+)`|\*\*(.+?)\*\*|\*([^*]+)\*/;
+
+function buildStyledSegment(type: 'bold' | 'italic', inner: string): TextSegment {
+  const children = parseMarkdownLinks(inner);
+  const hasNested = children.some((c) => c.type !== 'text');
+  return hasNested ? { type, text: inner, children } : { type, text: inner };
+}
 
 /**
  * Splits a string containing inline Markdown (`[label](url)`, `` `code` ``, `**bold**`, `*italic*`)
@@ -15,10 +21,10 @@ export function parseMarkdownLinks(input: string): TextSegment[] {
   if (!input) return [];
   const segments: TextSegment[] = [];
   let lastIndex = 0;
-  INLINE_MD_RE.lastIndex = 0;
+  const regex = new RegExp(INLINE_MD_PATTERN, 'g');
 
   let match: RegExpExecArray | null;
-  while ((match = INLINE_MD_RE.exec(input)) !== null) {
+  while ((match = regex.exec(input)) !== null) {
     const [full, linkLabel, linkUrl, codeText, boldText, italicText] = match;
 
     if (linkLabel !== undefined && linkUrl !== undefined) {
@@ -37,12 +43,12 @@ export function parseMarkdownLinks(input: string): TextSegment[] {
       if (match.index > lastIndex) {
         segments.push({ type: 'text', text: input.slice(lastIndex, match.index) });
       }
-      segments.push({ type: 'bold', text: boldText });
+      segments.push(buildStyledSegment('bold', boldText));
     } else if (italicText !== undefined) {
       if (match.index > lastIndex) {
         segments.push({ type: 'text', text: input.slice(lastIndex, match.index) });
       }
-      segments.push({ type: 'italic', text: italicText });
+      segments.push(buildStyledSegment('italic', italicText));
     }
 
     lastIndex = match.index + full.length;

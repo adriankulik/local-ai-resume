@@ -9,7 +9,7 @@ import { ExtensionService } from '../core/extension.service';
 import { LayoutService } from '../core/layout.service';
 import { VaultService } from '../core/vault.service';
 import { Experience, THEMES, ThemeName, VaultSettings, nextId } from '../core/vault.model';
-import { parseMarkdownLinks } from '../core/rich-text';
+import { RichTextComponent } from '../core/rich-text.component';
 
 const MM_PX = 96 / 25.4;
 const A4_W = 210 * MM_PX;
@@ -18,13 +18,12 @@ const A4_H = 297 * MM_PX;
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ButtonComponent, LucideDynamicIcon],
+  imports: [FormsModule, DropdownComponent, ToggleComponent, CollapsibleComponent, ButtonComponent, LucideDynamicIcon, RichTextComponent],
   templateUrl: './preview.component.html',
 })
 export class PreviewComponent implements AfterViewInit, OnDestroy {
   readonly vs = inject(VaultService);
   readonly themes = THEMES;
-  readonly bulletSegments = parseMarkdownLinks;
   readonly exportIcon = LucideFileDown.icon;
   readonly editIcon = LucidePencil.icon;
   readonly plusIcon = LucidePlus.icon;
