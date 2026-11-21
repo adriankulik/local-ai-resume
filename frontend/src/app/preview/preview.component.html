@@ -89,7 +89,7 @@
         [attr.aria-pressed]="editMode()"
         (click)="toggleEditMode()"
       >
-        {{ editMode() ? 'Done editing' : 'Edit resume' }}
+        {{ editMode() ? 'Save' : 'Edit resume' }}
       </button>
     </div>
     <div class="sheet-wrap" [style.width.px]="793.7 * scale()" [style.height.px]="sheetHeight() * scale()">
