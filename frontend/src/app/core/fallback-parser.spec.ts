@@ -1,8 +1,8 @@
 import { fallbackParseResume } from './fallback-parser';
-import { defaultVault } from './default-vault';
+import { emptyVault } from './vault.model';
 
 describe('fallbackParseResume', () => {
-  const base = defaultVault();
+  const base = emptyVault();
 
   it('extracts name, email, phone, and links from raw text', () => {
     const raw = `

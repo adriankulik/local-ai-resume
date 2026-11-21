@@ -27,12 +27,15 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({ imports: [AppComponent] }).compileComponents();
     const fixture = TestBed.createComponent(AppComponent);
     const vs = TestBed.inject(VaultService);
+    vs.update((v) => {
+      v.contact.fullName = 'Jane Doe';
+    });
     vs.completeOnboarding();
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('app-vault-editor')).toBeTruthy();
     expect(el.querySelector('app-triage')).toBeTruthy();
-    expect(el.querySelector('app-preview article.sheet h1')?.textContent).toContain('Jan Kowalski');
+    expect(el.querySelector('app-preview article.sheet h1')?.textContent).toContain('Jane Doe');
   });
 
   it('defines tabs in order: 1. Vault, 2. Job match, 3. Preview', async () => {
@@ -86,5 +89,6 @@ describe('AppComponent', () => {
     expect(tabButtons[0].classList.contains('completed')).toBeTrue();
     expect(tabButtons[1].classList.contains('completed')).toBeTrue();
     expect(tabButtons[2].classList.contains('completed')).toBeTrue();
+    expect(tabButtons[0].querySelector('svg.tab-check')).toBeTruthy();
   });
 });

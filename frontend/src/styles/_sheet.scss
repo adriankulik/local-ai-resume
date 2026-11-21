@@ -545,6 +545,51 @@
   }
 
   /* Shared common element rules */
+  .r-id {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .r-contact {
+    width: 100%;
+  }
+
+  .r-contact__row {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1mm 3mm;
+  }
+
+  .r-contact__item + .r-contact__item::before {
+    content: none !important;
+  }
+
+  .r-contact__item {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .r-bullet-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--accent, currentColor);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+
+    &:hover {
+      color: var(--accent, inherit);
+    }
+  }
+
+  .r-bullet-code {
+    font-family: v.$font-mono;
+    font-size: 0.9em;
+    padding: 0 2px;
+    border-radius: 2px;
+    background: rgba(128, 128, 128, 0.12);
+  }
+
   .r-contact__icon {
     vertical-align: -0.15em;
     margin-right: 1mm;

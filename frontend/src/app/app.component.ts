@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { LucideChevronsRight, LucideInfo } from '@lucide/angular';
+import { LucideCheck, LucideChevronsRight, LucideDynamicIcon, LucideInfo } from '@lucide/angular';
 import { ButtonComponent } from './button/button.component';
 import { LayoutService, WorkspaceTab } from './core/layout.service';
 import { AiService } from './core/ai.service';
@@ -29,6 +29,7 @@ import { AboutComponent } from './about/about.component';
     AiSettingsComponent,
     AiLozengeComponent,
     AboutComponent,
+    LucideDynamicIcon,
   ],
   templateUrl: './app.component.html',
 })
@@ -37,6 +38,7 @@ export class AppComponent implements OnInit {
   readonly ai = inject(AiService);
   readonly ext = inject(ExtensionService);
   readonly layout = inject(LayoutService);
+  readonly checkIcon = LucideCheck.icon;
   readonly expandIcon = LucideChevronsRight.icon;
   readonly infoIcon = LucideInfo.icon;
   readonly tab = this.layout.activeTab;

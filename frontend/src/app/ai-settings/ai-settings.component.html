@@ -1,6 +1,6 @@
 <div class="ai-settings">
   <p class="ai-settings__intro">
-    Choose how you want to run AI for ATS matching, resume parsing, and bullet tailoring.
+    Choose how you want to run AI for ATS matching, resume parsing, and bullet point tailoring.
     Everything runs 100% on your device with complete privacy.
   </p>
 
@@ -127,7 +127,9 @@
   }
 
   <div class="privacy-note">
-    <span class="privacy-note__icon" aria-hidden="true">🔒</span>
+    <span class="privacy-note__icon" aria-hidden="true">
+      <svg lucideIcon [lucideIcon]="lockIcon" [size]="16"></svg>
+    </span>
     <span>
       Zero cloud dependency: resume bullet points and job descriptions are processed directly inside your browser or via your local runner.
     </span>

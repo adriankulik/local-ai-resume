@@ -1,6 +1,6 @@
 <a class="skip-link" href="#workspace">Skip to workspace</a>
 <header class="app-header no-print">
-  <h1 class="visually-hidden">Local AI Resume</h1>
+  <h1 class="visually-hidden">On-device AI Resume</h1>
   <div class="header-actions">
     <app-ai-lozenge (openSettings)="aiSettingsOpen.set(true)" />
     <div class="header-controls">
@@ -11,12 +11,12 @@
         size="sm"
         [iconLeading]="infoIcon"
         (click)="aboutOpen.set(true)"
-        title="About Local AI Resume"
+        title="About On-device AI Resume"
       >
         About
       </button>
       @if (ext.isExtension()) {
-        <button app-button type="button" variant="secondary" size="sm" (click)="ext.openInNewTab()" title="Open Local AI Resume in a full browser tab">
+        <button app-button type="button" variant="secondary" size="sm" (click)="ext.openInNewTab()" title="Open On-device AI Resume in a full browser tab">
           Full tab
         </button>
       }
@@ -38,7 +38,7 @@
         (click)="layout.setActiveTab(t.id)"
       >
         @if (isStepCompleted(t.id)) {
-          <span class="tab-check" aria-hidden="true">&#10003;</span>
+          <svg lucideIcon [lucideIcon]="checkIcon" [size]="14" class="tab-check" aria-hidden="true"></svg>
         }
         {{ t.label }}
       </button>
@@ -102,7 +102,7 @@
 }
 
 @if (aboutOpen()) {
-  <app-modal title="About Local AI Resume" (closed)="aboutOpen.set(false)">
+  <app-modal title="About On-device AI Resume" (closed)="aboutOpen.set(false)">
     <app-about (closed)="aboutOpen.set(false)" />
   </app-modal>
 }

@@ -95,6 +95,8 @@
   .sub-actions {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: v.$sp-2;
   }
 }
 

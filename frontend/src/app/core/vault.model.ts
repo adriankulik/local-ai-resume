@@ -32,6 +32,7 @@ export type ThemeName = 'classic-serif' | 'modern-slate' | 'minimal-mono';
 export interface VaultSettings {
   theme: ThemeName;
   showPhoto: boolean;
+  showCertificationDates: boolean;
   strictOnePage: boolean;
   includeRodoClause: boolean;
   rodoCompanyName: string;
@@ -43,6 +44,7 @@ export interface Contact {
   phone: string;
   location: string;
   linkedin: string;
+  github: string;
   links: string[];
   photoDataUrl: string;
 }
@@ -65,7 +67,7 @@ export const THEMES: { value: ThemeName; label: string }[] = [
 
 export function emptyVault(): MasterVault {
   return {
-    contact: { fullName: '', email: '', phone: '', location: '', linkedin: '', links: [], photoDataUrl: '' },
+    contact: { fullName: '', email: '', phone: '', location: '', linkedin: '', github: '', links: [], photoDataUrl: '' },
     summary: '',
     experience: [],
     education: [],
@@ -74,6 +76,7 @@ export function emptyVault(): MasterVault {
     settings: {
       theme: 'modern-slate',
       showPhoto: true,
+      showCertificationDates: true,
       strictOnePage: true,
       includeRodoClause: true,
       rodoCompanyName: '',
@@ -96,6 +99,7 @@ export function normalizeVault(raw: unknown): MasterVault {
     phone: str(c['phone']),
     location: str(c['location']),
     linkedin: str(c['linkedin']),
+    github: str(c['github']),
     links: strArr(c['links']),
     photoDataUrl: str(c['photoDataUrl']),
   };
@@ -140,6 +144,10 @@ export function normalizeVault(raw: unknown): MasterVault {
   base.settings = {
     theme: themes.includes(s['theme']) ? s['theme'] : base.settings.theme,
     showPhoto: typeof s['showPhoto'] === 'boolean' ? s['showPhoto'] : base.settings.showPhoto,
+    showCertificationDates:
+      typeof s['showCertificationDates'] === 'boolean'
+        ? s['showCertificationDates']
+        : base.settings.showCertificationDates,
     strictOnePage:
       typeof s['strictOnePage'] === 'boolean' ? s['strictOnePage'] : base.settings.strictOnePage,
     includeRodoClause:

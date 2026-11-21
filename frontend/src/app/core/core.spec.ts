@@ -1,6 +1,33 @@
 import { extractKeywords, fallbackTriage, keywordStatus, textHasKeyword } from './keyword-matcher';
-import { defaultVault } from './default-vault';
-import { nextId, normalizeVault } from './vault.model';
+import { MasterVault, emptyVault, nextId, normalizeVault } from './vault.model';
+import { parseMarkdownLinks } from './rich-text';
+
+function testVault(): MasterVault {
+  const v = emptyVault();
+  v.experience = [
+    {
+      id: 'exp_1',
+      role: 'Senior Engineer',
+      company: 'Acme',
+      startDate: '2022-01',
+      endDate: 'Present',
+      bullets: [
+        { id: 'b_101', text: 'Introduced GraphQL gateway, cutting API round-trips by 45%.' },
+        { id: 'b_102', text: 'Delivered TypeScript web applications.' },
+      ],
+    },
+    {
+      id: 'exp_2',
+      role: 'Engineer',
+      company: 'Beta',
+      startDate: '2020-01',
+      endDate: '2021-12',
+      bullets: [{ id: 'b_103', text: 'Containerised build pipelines with Docker.' }],
+    },
+  ];
+  v.skills = ['TypeScript', 'GraphQL', 'Docker'];
+  return v;
+}
 
 describe('keyword matcher', () => {
   it('matches whole tokens only', () => {
@@ -16,14 +43,14 @@ describe('keyword matcher', () => {
   });
 
   it('extracts vault skills found in the JD', () => {
-    const v = defaultVault();
+    const v = testVault();
     const kws = extractKeywords('We need TypeScript and GraphQL experts. Docker a plus.', v);
     expect(kws).toContain('TypeScript');
     expect(kws).toContain('GraphQL');
   });
 
   it('fallback triage selects relevant bullets only, honouring the cap', () => {
-    const v = defaultVault();
+    const v = testVault();
     const res = fallbackTriage(v, 'Looking for GraphQL and Docker experience', 1);
     expect(res.selectedBulletIds.length).toBe(1);
     const all = v.experience.flatMap((e) => e.bullets.map((b) => b.id));
@@ -31,7 +58,7 @@ describe('keyword matcher', () => {
   });
 
   it('reports present/missing keywords', () => {
-    const st = keywordStatus(defaultVault(), ['TypeScript', 'Kubernetes']);
+    const st = keywordStatus(testVault(), ['TypeScript', 'Kubernetes']);
     expect(st.map((s) => s.present)).toEqual([true, false]);
   });
 });
@@ -51,8 +78,33 @@ describe('vault model', () => {
   });
 
   it('generates unique next ids', () => {
-    const v = defaultVault();
-    expect(nextId(v, 'b')).toBe('b_108');
+    const v = testVault();
+    expect(nextId(v, 'b')).toBe('b_104');
     expect(nextId(v, 'exp')).toBe('exp_3');
+  });
+});
+
+describe('parseMarkdownLinks', () => {
+  it('parses markdown links, inline code, bold, and italic', () => {
+    const segs = parseMarkdownLinks(
+      '[kmd-labs](https://github.com/kmd-labs): **Unified** `npx` *CLI* (e.g., [el-nino](https://github.com/kmd-labs/el-nino)).',
+    );
+    expect(segs).toEqual([
+      { type: 'link', label: 'kmd-labs', url: 'https://github.com/kmd-labs' },
+      { type: 'text', text: ': ' },
+      { type: 'bold', text: 'Unified' },
+      { type: 'text', text: ' ' },
+      { type: 'code', text: 'npx' },
+      { type: 'text', text: ' ' },
+      { type: 'italic', text: 'CLI' },
+      { type: 'text', text: ' (e.g., ' },
+      { type: 'link', label: 'el-nino', url: 'https://github.com/kmd-labs/el-nino' },
+      { type: 'text', text: ').' },
+    ]);
+  });
+
+  it('ignores unsafe protocols like javascript:', () => {
+    const segs = parseMarkdownLinks('Click [here](javascript:alert(1)) now');
+    expect(segs).toEqual([{ type: 'text', text: 'Click [here](javascript:alert(1)) now' }]);
   });
 });

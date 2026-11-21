@@ -130,4 +130,49 @@ describe('VaultEditorComponent', () => {
     const addCertBtn = fixture.nativeElement.querySelector('.modal__body .row.wrap button.app-button--secondary') as HTMLButtonElement | null;
     expect(addCertBtn?.textContent?.trim()).toBe('+ Add certification');
   });
+
+  it('reorders experience roles and bullets via moveExperience and moveBullet', async () => {
+    await TestBed.configureTestingModule({ imports: [VaultEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(VaultEditorComponent);
+    const comp = fixture.componentInstance;
+    const vs = TestBed.inject(VaultService);
+    await vs.ready;
+
+    vs.update((v) => {
+      v.experience = [
+        {
+          id: 'exp_1',
+          role: 'First Role',
+          company: 'A',
+          startDate: '2020-01',
+          endDate: '2021-01',
+          bullets: [
+            { id: 'b_1', text: 'Bullet 1' },
+            { id: 'b_2', text: 'Bullet 2' },
+          ],
+        },
+        {
+          id: 'exp_2',
+          role: 'Second Role',
+          company: 'B',
+          startDate: '2022-01',
+          endDate: 'Present',
+          bullets: [],
+        },
+      ];
+    });
+
+    comp.dialog.set('experience');
+    fixture.detectChanges();
+
+    const moveRoleDownBtn = fixture.nativeElement.querySelector('button[aria-label="Move role exp_1 down"]') as HTMLButtonElement | null;
+    expect(moveRoleDownBtn).toBeTruthy();
+    moveRoleDownBtn?.click();
+    expect(vs.vault().experience.map((e) => e.id)).toEqual(['exp_2', 'exp_1']);
+
+    const moveBulletUpBtn = fixture.nativeElement.querySelector('button[aria-label="Move bullet b_2 up"]') as HTMLButtonElement | null;
+    expect(moveBulletUpBtn).toBeTruthy();
+    moveBulletUpBtn?.click();
+    expect(vs.vault().experience[1].bullets.map((b) => b.id)).toEqual(['b_2', 'b_1']);
+  });
 });

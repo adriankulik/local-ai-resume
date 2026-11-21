@@ -1,7 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
-import { Bullet, Certification, Education, Experience, MasterVault, normalizeVault, nextId } from './vault.model';
-import { defaultVault } from './default-vault';
+import { Bullet, Certification, Education, Experience, MasterVault, emptyVault, normalizeVault, nextId } from './vault.model';
 
 const VAULT_KEY = 'master-vault';
 const ONBOARDED_KEY = 'ats-onboarding-completed';
@@ -17,7 +16,7 @@ interface SavedTailoredState {
 export class VaultService {
   private readonly storage = inject(StorageService);
 
-  readonly vault = signal<MasterVault>(defaultVault());
+  readonly vault = signal<MasterVault>(emptyVault());
   readonly loaded = signal(false);
   /** True when the user has completed onboarding (pasted/reviewed their profile) or imported a vault. */
   readonly onboarded = signal(false);
@@ -94,7 +93,7 @@ export class VaultService {
         }
       }
     } catch (e) {
-      console.warn('Vault load failed, using sample data', e);
+      console.warn('Vault load failed, starting with empty vault', e);
       if (this.cleared) return;
       this.selectAll();
       this.onboarded.set(false);
@@ -176,6 +175,17 @@ export class VaultService {
     this.setVault(this.vault());
   }
 
+  moveExperience(index: number, delta: -1 | 1): void {
+    this.update((v) => moveItem(v.experience, index, delta));
+  }
+
+  moveBullet(expId: string, index: number, delta: -1 | 1): void {
+    this.update((v) => {
+      const e = v.experience.find((x) => x.id === expId);
+      if (e) moveItem(e.bullets, index, delta);
+    });
+  }
+
   addBullet(expId: string, text = '', select = true): string {
     let newId = '';
     this.update((v) => {
@@ -253,7 +263,7 @@ export class VaultService {
     await this.storage.clearAll();
     await this.storage.delete(TAILORED_STATE_KEY).catch(() => undefined);
     this.pristine.set(true);
-    this.vault.set(defaultVault());
+    this.vault.set(emptyVault());
     this.onboarded.set(false);
     this.selectedBulletIds.set(new Set());
     this.tailoredSummary.set(null);
@@ -266,4 +276,11 @@ export class VaultService {
     this.hiddenCertificationIds.set(new Set());
     this.hiddenSummary.set(false);
   }
+}
+
+function moveItem<T>(arr: T[], index: number, delta: -1 | 1): void {
+  const target = index + delta;
+  if (index < 0 || index >= arr.length || target < 0 || target >= arr.length) return;
+  const [item] = arr.splice(index, 1);
+  arr.splice(target, 0, item);
 }

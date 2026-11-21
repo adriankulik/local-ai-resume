@@ -206,3 +206,30 @@
     flex: 1;
   }
 }
+
+.ai-added-skills {
+  display: flex;
+  flex-direction: column;
+  gap: v.$sp-1;
+
+  &__label {
+    font-size: v.$fs-xs;
+    color: var(--c-status-ok-ink);
+    font-weight: v.$fw-medium;
+  }
+
+  .chip-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0 0 0 v.$sp-1;
+    font-size: v.$fs-sm;
+    line-height: 1;
+    opacity: 0.75;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
