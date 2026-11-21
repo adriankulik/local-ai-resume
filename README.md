@@ -1,6 +1,6 @@
 # On-device AI Resume
 
-> Provider-agnostic, on-device GenAI resume builder focused on Chrome's built-in Gemini Nano with seamless support for local model runners (Ollama, LM Studio).
+> Provider-agnostic, on-device GenAI resume builder focused on Chrome's built-in Gemini Nano with seamless support for on-device model runners (Ollama, LM Studio).
 
 ---
 
@@ -14,7 +14,7 @@
 
 ### Provider-Agnostic On-Device AI
 - **Chrome Built-in AI (Gemini Nano)**: Default zero-config on-device Prompt API.
-- **Local Model Runners**: Seamlessly connect to Ollama (`http://localhost:11434/v1`), LM Studio (`http://localhost:1234/v1`), or any OpenAI-compatible runner (llama.cpp, OMLX, LocalAI).
+- **On-Device Model Runners**: Seamlessly connect to Ollama (`http://localhost:11434/v1`), LM Studio (`http://localhost:1234/v1`), or any OpenAI-compatible runner (llama.cpp, OMLX, LocalAI).
 - **Keyword Fallback**: Always works offline even if no LLM is installed.
 
 ```
