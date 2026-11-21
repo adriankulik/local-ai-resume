@@ -100,6 +100,11 @@
         [attr.data-theme]="s().theme"
         [style.transform]="'scale(' + scale() + ')'"
       >
+        @if (editMode() && s().strictOnePage) {
+          <div class="r-page-break no-print" aria-hidden="true">
+            <span>A4 page 1 limit (297mm)</span>
+          </div>
+        }
         <header class="r-header">
           @if (showPhoto()) {
             <img class="r-photo" [src]="v.contact.photoDataUrl" alt="" />
@@ -227,30 +232,67 @@
                       <button type="button" class="r-edit-btn no-print" [disabled]="eLast" [attr.aria-label]="'Move role ' + (e.role || e.id) + ' down'" (click)="moveResumeExperience(e.id, 1)">
                         <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
                       </button>
+                      @if (editingRoleId() !== e.id) {
+                        <button type="button" class="r-edit-btn no-print" [attr.aria-label]="'Edit role ' + (e.role || e.id)" (click)="startEditRole(e)">
+                          Edit
+                        </button>
+                      }
                       <button type="button" class="r-edit-btn r-edit-btn--danger no-print" (click)="removeResumeExperience(e)">
                         Delete role
                       </button>
                     }
                   </span>
                 </h3>
+                @if (editMode() && editingRoleId() === e.id) {
+                  <div class="r-inline-form no-print">
+                    <div class="r-inline-form__grid">
+                      <input type="text" placeholder="Role title" aria-label="Edit role title" [ngModel]="roleDraft().role" (ngModelChange)="updateRoleDraftField('role', $event)" />
+                      <input type="text" placeholder="Company" aria-label="Edit company" [ngModel]="roleDraft().company" (ngModelChange)="updateRoleDraftField('company', $event)" />
+                      <input type="text" placeholder="Start (e.g. 2022-03)" aria-label="Edit start date" [ngModel]="roleDraft().startDate" (ngModelChange)="updateRoleDraftField('startDate', $event)" />
+                      <input type="text" placeholder="End (e.g. Present)" aria-label="Edit end date" [ngModel]="roleDraft().endDate" (ngModelChange)="updateRoleDraftField('endDate', $event)" />
+                    </div>
+                    <div class="r-inline-form__actions">
+                      <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="saveRoleEdit()">Save</button>
+                      <button type="button" class="r-edit-btn" (click)="cancelRoleEdit()">Cancel</button>
+                    </div>
+                  </div>
+                }
                 <ul>
                   @for (b of e.bullets; track b.id; let bFirst = $first, bLast = $last) {
                     <li class="r-bullet-item">
-                      <span>
-                        <app-rich-text [text]="b.text" linkClass="r-bullet-link" codeClass="r-bullet-code" />
-                      </span>
-                      @if (editMode()) {
-                        <span class="r-edit-actions no-print">
-                          <button type="button" class="r-edit-btn" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="moveResumeBullet(e.id, b.id, -1)">
-                            <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
-                          </button>
-                          <button type="button" class="r-edit-btn" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="moveResumeBullet(e.id, b.id, 1)">
-                            <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
-                          </button>
-                          <button type="button" class="r-edit-btn r-edit-btn--danger" aria-label="Delete bullet" (click)="removeResumeBullet(e.id, b.id)">
-                            ×
-                          </button>
+                      @if (editMode() && editingBullet()?.expId === e.id && editingBullet()?.bulletId === b.id) {
+                        <div class="r-inline-add r-bullet-edit no-print">
+                          <input
+                            type="text"
+                            aria-label="Edit bullet point"
+                            [ngModel]="bulletEditDraft()"
+                            (ngModelChange)="bulletEditDraft.set($event)"
+                            (keydown.enter)="saveBulletEdit()"
+                            (keydown.escape)="cancelBulletEdit()"
+                          />
+                          <button type="button" class="r-edit-btn r-edit-btn--primary" (click)="saveBulletEdit()">Save</button>
+                          <button type="button" class="r-edit-btn" (click)="cancelBulletEdit()">Cancel</button>
+                        </div>
+                      } @else {
+                        <span>
+                          <app-rich-text [text]="b.text" linkClass="r-bullet-link" codeClass="r-bullet-code" />
                         </span>
+                        @if (editMode()) {
+                          <span class="r-edit-actions no-print">
+                            <button type="button" class="r-edit-btn" [disabled]="bFirst" [attr.aria-label]="'Move bullet ' + b.id + ' up'" (click)="moveResumeBullet(e.id, b.id, -1)">
+                              <svg lucideIcon [lucideIcon]="upIcon" [size]="12" aria-hidden="true"></svg>
+                            </button>
+                            <button type="button" class="r-edit-btn" [disabled]="bLast" [attr.aria-label]="'Move bullet ' + b.id + ' down'" (click)="moveResumeBullet(e.id, b.id, 1)">
+                              <svg lucideIcon [lucideIcon]="downIcon" [size]="12" aria-hidden="true"></svg>
+                            </button>
+                            <button type="button" class="r-edit-btn" [attr.aria-label]="'Edit bullet ' + b.id" (click)="startEditBullet(e.id, b)">
+                              Edit
+                            </button>
+                            <button type="button" class="r-edit-btn r-edit-btn--danger" aria-label="Delete bullet" (click)="removeResumeBullet(e.id, b.id)">
+                              ×
+                            </button>
+                          </span>
+                        }
                       }
                     </li>
                   }

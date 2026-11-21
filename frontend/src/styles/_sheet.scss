@@ -709,6 +709,36 @@
     input {
       flex: 1;
     }
+
+    &.r-bullet-edit {
+      flex: 1;
+      margin: 0;
+    }
+  }
+
+  .r-page-break {
+    position: absolute;
+    top: calc(297mm - 1px);
+    left: 0;
+    right: 0;
+    border-top: 2px dashed #dc2626;
+    pointer-events: none;
+    z-index: 5;
+
+    span {
+      position: absolute;
+      right: 4mm;
+      top: -16px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: #dc2626;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 7.5pt;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
   }
 
   .r-inline-form {
