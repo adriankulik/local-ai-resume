@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { StorageService } from './storage.service';
 import { Bullet, Certification, Education, Experience, MasterVault, emptyVault, normalizeVault, nextId } from './vault.model';
 
@@ -41,30 +41,73 @@ export class VaultService {
 
   readonly settings = computed(() => this.vault().settings);
   readonly ready: Promise<void>;
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly lastSavedJson = new Map<string, string>();
   private cleared = false;
+  private syncingExternal = false;
 
   constructor() {
     this.ready = this.init();
+    const unwatch = this.storage.watch((key, newValue) => this.applyExternalChange(key, newValue));
+    this.destroyRef.onDestroy(unwatch);
+
     effect(() => {
       const v = this.vault();
-      if (this.loaded() && !this.pristine()) {
-        this.storage.set(VAULT_KEY, v).catch((e) => console.warn('Vault save failed (storage full?)', e));
+      if (this.loaded() && !this.pristine() && !this.syncingExternal) {
+        this.persistKey(VAULT_KEY, v);
       }
     });
     effect(() => {
       const summary = this.tailoredSummary();
       const skills = this.tailoredSkills();
       const selected = Array.from(this.selectedBulletIds());
-      if (this.loaded() && !this.pristine()) {
-        this.storage
-          .set(TAILORED_STATE_KEY, {
-            selectedBulletIds: selected,
-            tailoredSummary: summary,
-            tailoredSkills: skills,
-          })
-          .catch(() => undefined);
+      if (this.loaded() && !this.pristine() && !this.syncingExternal) {
+        this.persistKey(TAILORED_STATE_KEY, {
+          selectedBulletIds: selected,
+          tailoredSummary: summary,
+          tailoredSkills: skills,
+        });
       }
     });
+  }
+
+  private persistKey(key: string, value: unknown): void {
+    try {
+      this.lastSavedJson.set(key, JSON.stringify(value));
+    } catch {
+      // Ignore serialization errors when caching last-written JSON
+    }
+    this.storage.set(key, value).catch((e) => console.warn('Vault save failed (storage full?)', e));
+  }
+
+  private applyExternalChange(key: string, newValue: unknown): void {
+    const incomingJson = newValue === undefined ? '' : JSON.stringify(newValue);
+    if (this.lastSavedJson.get(key) === incomingJson) return;
+    this.lastSavedJson.set(key, incomingJson);
+
+    this.syncingExternal = true;
+    try {
+      if (key === VAULT_KEY) {
+        if (newValue) {
+          this.setVault(normalizeVault(newValue), true);
+        } else {
+          this.vault.set(emptyVault());
+          this.pristine.set(true);
+          this.selectedBulletIds.set(new Set());
+        }
+      } else if (key === ONBOARDED_KEY) {
+        this.onboarded.set(Boolean(newValue));
+      } else if (key === TAILORED_STATE_KEY) {
+        const tailored = (newValue ?? {}) as SavedTailoredState;
+        if (Array.isArray(tailored.selectedBulletIds)) {
+          this.selectedBulletIds.set(new Set(tailored.selectedBulletIds));
+        }
+        this.tailoredSummary.set(tailored.tailoredSummary ?? null);
+        this.tailoredSkills.set(Array.isArray(tailored.tailoredSkills) ? tailored.tailoredSkills : null);
+      }
+    } finally {
+      this.syncingExternal = false;
+    }
   }
 
   private async init(): Promise<void> {
@@ -103,12 +146,12 @@ export class VaultService {
 
   completeOnboarding(): void {
     this.onboarded.set(true);
-    this.storage.set(ONBOARDED_KEY, true).catch(() => undefined);
+    this.persistKey(ONBOARDED_KEY, true);
   }
 
   startOnboarding(): void {
     this.onboarded.set(false);
-    this.storage.set(ONBOARDED_KEY, false).catch(() => undefined);
+    this.persistKey(ONBOARDED_KEY, false);
   }
 
   /** Signals an in-place mutation (e.g. via ngModel) so dependents refresh and the vault persists. */
